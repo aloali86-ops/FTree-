@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>Семейное Древо</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@0.383.0/dist/umd/lucide-react.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{overflow:hidden;background:#070b18;}
+    #root{width:100vw;height:100vh;}
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px;}
+    *{-webkit-tap-highlight-color:transparent;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect, useCallback, useMemo } = React;
+const {
+  Search, Sun, Moon, Plus, Download, X, Edit2,
+  ZoomIn, ZoomOut, Home, Users, Calendar, MapPin,
+  GripVertical, Check, ArrowLeft, Trash2, GitBranch,
+  UserCircle, ChevronRight
+} = LucideReact;
+
+// ── localStorage wrapper (replaces window.storage) ──
+const storage = {
+  get: async (key) => {
+    try { const v = localStorage.getItem(key); return v !== null ? { value: v } : null; } catch(e){ return null; }
+  },
+  set: async (key, value) => {
+    try { localStorage.setItem(key, value); return true; } catch(e){ return false; }
+  },
+  delete: async (key) => {
+    try { localStorage.removeItem(key); return true; } catch(e){ return false; }
+  }
+};
+
+const CW = 160, CH = 92;
+
+const INIT_PERSONS = {
+  p1:{id:"p1",surname:"Наншанло",name:"Абдулла Паншарович",birthDate:"15.03.1930",death:"2021",city:"Пржевальск",country:"СССР",bio:"",gender:"male",photo:null,parents:[],spouses:[{id:"p2",order:1}]},
+  p2:{id:"p2",surname:"Юсупова",name:"Нана",birthDate:"22.07.1933",death:"1987",city:"Пржевальск",country:"СССР",bio:"",gender:"female",photo:null,parents:[],spouses:[{id:"p1",order:1}]},
+  p3:{id:"p3",surname:"Наншанло",name:"Анвар Абдулаевич",birthDate:"28.09.1962",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",photo:null,parents:["p1","p2"],spouses:[{id:"p4",order:1}]},
+  p4:{id:"p4",surname:"Машанло",name:"Зухра Дыдызовна",birthDate:"23.01.1964",death:"",city:"Токмок",country:"СССР",bio:"",gender:"female",photo:null,parents:[],spouses:[{id:"p3",order:1}]},
+  p5:{id:"p5",surname:"Наншанло",name:"Алишер Анварович",birthDate:"28.09.1986",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",photo:null,parents:["p3","p4"],spouses:[{id:"p1778075489361",order:1}]},
+  p6:{id:"p6",surname:"Наншанло",name:"Зайнура Анваровна",birthDate:"29.03.1984",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"female",photo:null,parents:["p3","p4"],spouses:[{id:"p1778075295202",order:1}]},
+  p1778075295202:{id:"p1778075295202",surname:"Мамиев",name:"Ринат",birthDate:"24.05.1980",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",photo:null,parents:[],spouses:[{id:"p6",order:1}]},
+  p1778075489361:{id:"p1778075489361",surname:"Ваншу",name:"Рахия Гайсыровна",birthDate:"07.12.1987",death:"",city:"Токмок",country:"СССР",bio:"",gender:"female",photo:null,parents:["p1778159628424","p1778159686969"],spouses:[{id:"p5",order:1}]},
+  p1778075538942:{id:"p1778075538942",surname:"Мамиева",name:"Алина Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p6","p1778075295202"],spouses:[{id:"p1778075960975",order:1}]},
+  p1778075629720:{id:"p1778075629720",surname:"Мамиева",name:"Аяна Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p6","p1778075295202"],spouses:[]},
+  p1778075717998:{id:"p1778075717998",surname:"Мамиева",name:"Малика Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p6","p1778075295202"],spouses:[]},
+  p1778075785882:{id:"p1778075785882",surname:"Мамиева",name:"Хамида Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p6","p1778075295202"],spouses:[]},
+  p1778075884864:{id:"p1778075884864",surname:"Мамиева",name:"Фарида Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p6","p1778075295202"],spouses:[]},
+  p1778075960975:{id:"p1778075960975",surname:"Макеев",name:"Алишер",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"male",photo:null,parents:[],spouses:[{id:"p1778075538942",order:1}]},
+  p1778075999966:{id:"p1778075999966",surname:"Макеева",name:"Фатима Алишеровна",birthDate:"",death:"",city:"",country:"",bio:"",gender:"female",photo:null,parents:["p1778075538942","p1778075960975"],spouses:[]},
+  p1778076064447:{id:"p1778076064447",surname:"Анваров",name:"Ислам Алишерович",birthDate:"20.12.2011",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"unknown",photo:null,parents:["p5","p1778075489361"],spouses:[]},
+  p1778076129834:{id:"p1778076129834",surname:"Анваров",name:"Ахмад Алишерович",birthDate:"13.06.2014",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"male",photo:null,parents:["p5","p1778075489361"],spouses:[]},
+  p1778076844156:{id:"p1778076844156",surname:"Наншанло",name:"Аскар Анварович",birthDate:"19.02.1989",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",photo:null,parents:["p4","p3"],spouses:[{id:"p1778080146638",order:1}]},
+  p1778080146638:{id:"p1778080146638",surname:"Машанло",name:"Салима Ильясовна",birthDate:"23.08.1991",death:"",city:"",country:"Украина",bio:"",gender:"female",photo:null,parents:[],spouses:[{id:"p1778076844156",order:1}]},
+  p1778080219001:{id:"p1778080219001",surname:"Наншанло",name:"Азиля Аскаровна",birthDate:"10.08.2010",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p1778076844156","p1778080146638"],spouses:[]},
+  p1778080274977:{id:"p1778080274977",surname:"Наншанло",name:"Шахноза Аскаровна",birthDate:"07.10.2012",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p1778080146638","p1778076844156"],spouses:[]},
+  p1778080350080:{id:"p1778080350080",surname:"Наншанло",name:"Абду Маджит Аскарович",birthDate:"28.12.2014",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"male",photo:null,parents:["p1778076844156","p1778080146638"],spouses:[]},
+  p1778080401488:{id:"p1778080401488",surname:"Наншанло",name:"Мухаммад Аскарович",birthDate:"20.12.2021",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"male",photo:null,parents:["p1778076844156","p1778080146638"],spouses:[]},
+  p1778159628424:{id:"p1778159628424",surname:"Ваншу",name:"Гайсыр Омарович",birthDate:"01.01.1961",death:"",city:"Токмок",country:"СССР",bio:"",gender:"male",photo:null,parents:[],spouses:[{id:"p1778159686969",order:1}]},
+  p1778159686969:{id:"p1778159686969",surname:"Исмарова",name:"Бинлар Исхаровна",birthDate:"03.01.1967",death:"",city:"Масанчи",country:"СССР",bio:"",gender:"female",photo:null,parents:[],spouses:[{id:"p1778159628424",order:1}]},
+  p1778159777353:{id:"p1778159777353",surname:"Ваншу",name:"Айша Гайсыровна",birthDate:"21.01.1986",death:"",city:"Токмок",country:"СССР",bio:"",gender:"female",photo:null,parents:["p1778159628424","p1778159686969"],spouses:[{id:"p1778160021679",order:1}]},
+  p1778159831228:{id:"p1778159831228",surname:"Ваншу",name:"Сания Гайсыровна",birthDate:"31.07.1996",death:"",city:"Токмок",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p1778159686969","p1778159628424"],spouses:[]},
+  p1778159884833:{id:"p1778159884833",surname:"Ваншу",name:"Асия Гайсыровна",birthDate:"09.12.2000",death:"",city:"Токмок",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p1778159628424","p1778159686969"],spouses:[]},
+  p1778160021679:{id:"p1778160021679",surname:"",name:"Рашид",birthDate:"26.09.1980",death:"2025",city:"Сортобе",country:"СССР",bio:"",gender:"male",photo:null,parents:[],spouses:[{id:"p1778159777353",order:1}]},
+  p1778160107436:{id:"p1778160107436",surname:"",name:"Лейла Рашидовна",birthDate:"01.01.2009",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"unknown",photo:null,parents:["p1778160021679","p1778159777353"],spouses:[]},
+  p1778160154209:{id:"p1778160154209",surname:"",name:"Салия Рашидовна",birthDate:"29.09.2012",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"female",photo:null,parents:["p1778160021679","p1778159777353"],spouses:[]},
+  p1778166980636:{id:"p1778166980636",surname:"",name:"Лайсян Рашидовна",birthDate:"",death:"",city:"Сортобе",country:"Казахстан",bio:"",gender:"female",photo:null,parents:["p1778160021679","p1778159777353"],spouses:[]},
+};
+const INIT_POS = {
+  p1:{x:58,y:18},p2:{x:205,y:17},p3:{x:60,y:260},p4:{x:200,y:263},
+  p5:{x:86,y:443},p6:{x:-279,y:439},
+  p1778075295202:{x:-420,y:444},p1778075489361:{x:224,y:444},
+  p1778075538942:{x:-632,y:648},p1778075629720:{x:-499,y:649},
+  p1778075717998:{x:-366,y:648},p1778075785882:{x:-235,y:647},
+  p1778075884864:{x:-103,y:647},p1778075960975:{x:-761,y:647},
+  p1778075999966:{x:-698,y:825},p1778076064447:{x:80,y:652},
+  p1778076129834:{x:240,y:655},p1778076844156:{x:523,y:448},
+  p1778080146638:{x:671,y:449},p1778080219001:{x:404,y:652},
+  p1778080274977:{x:537,y:652},p1778080350080:{x:687,y:649},
+  p1778080401488:{x:837,y:649},p1778159628424:{x:1087,y:244},
+  p1778159686969:{x:1233,y:242},p1778159777353:{x:1160,y:444},
+  p1778159831228:{x:1310,y:444},p1778159884833:{x:1460,y:444},
+  p1778160021679:{x:1029,y:447},p1778160107436:{x:1017,y:648},
+  p1778160154209:{x:1153,y:648},p1778166980636:{x:1281,y:650},
+};
+
+const GC={male:["#6366f1","#818cf8"],female:["#ec4899","#f472b6"],unknown:["#0ea5e9","#38bdf8"]};
+const gc=g=>GC[g]||GC.unknown;
+
+function calcAge(b,d){
+  if(!b)return null;
+  const p=b.split(".");if(p.length<3)return null;
+  const dy=parseInt(p[0],10),m=parseInt(p[1],10),y=parseInt(p[2],10);
+  if(!y||isNaN(y))return null;
+  if(d){const yd=parseInt(d,10);if(!isNaN(yd))return yd-y>=0?yd-y:null;}
+  const now=new Date();let age=now.getFullYear()-y;
+  const hadB=now.getMonth()>(m-1)||(now.getMonth()===(m-1)&&now.getDate()>=dy);
+  if(!hadB)age--;return age>=0?age:null;
+}
+function ageLabel(a){
+  if(a===null||a===undefined)return"";
+  const m10=a%10,m100=a%100;
+  if(m100>=11&&m100<=14)return`${a} лет`;
+  if(m10===1)return`${a} год`;
+  if(m10>=2&&m10<=4)return`${a} года`;
+  return`${a} лет`;
+}
+function gbd(items,mw,fw,ow="родств."){
+  const m=items.filter(p=>p.gender==="male").length;
+  const f=items.filter(p=>p.gender==="female").length;
+  const o=items.length-m-f;
+  return[m?`${m} ${mw}`:"",f?`${f} ${fw}`:"",o?`${o} ${ow}`:""].filter(Boolean).join(" · ");
+}
+
+function Avatar({person,size=34}){
+  const[c1,c2]=gc(person.gender);
+  return <div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:size*0.38,userSelect:"none"}}>{(person.name||"?")[0]}</div>;
+}
+
+function PersonPicker({C,persons,excludeIds=[],selectedIds=[],onToggle,maxItems,color="#6366f1"}){
+  const[q,setQ]=useState("");
+  const filtered=useMemo(()=>Object.values(persons).filter(p=>!excludeIds.includes(p.id)&&`${p.name} ${p.surname}`.toLowerCase().includes(q.toLowerCase())).slice(0,40),[persons,excludeIds,q]);
+  return(
+    <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",marginTop:4}}>
+      <div style={{padding:"6px 8px",borderBottom:`1px solid ${C.border}`,position:"relative"}}>
+        <Search size={11} style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:C.muted}}/>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Поиск..." style={{width:"100%",boxSizing:"border-box",padding:"4px 4px 4px 22px",border:"none",background:"transparent",color:C.text,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+      </div>
+      <div style={{maxHeight:140,overflowY:"auto"}}>
+        {filtered.length===0&&<div style={{padding:"8px 10px",fontSize:11,color:C.muted,textAlign:"center"}}>Не найдено</div>}
+        {filtered.map(p=>{
+          const isSel=selectedIds.includes(p.id);
+          const isDis=!isSel&&maxItems&&selectedIds.length>=maxItems;
+          return(<div key={p.id} onClick={()=>!isDis&&onToggle(p.id,!isSel)} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",cursor:isDis?"not-allowed":"pointer",opacity:isDis?0.4:1,background:isSel?`${color}18`:"transparent"}}>
+            <Avatar person={p} size={20}/>
+            <span style={{fontSize:11,flex:1,color:C.text}}>{p.name} {p.surname}</span>
+            {isSel&&<Check size={12} color={color}/>}
+          </div>);
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RelSection({C,label,color,selectedIds,persons,excludeIds,maxItems,onToggle}){
+  const[open,setOpen]=useState(false);
+  const selected=selectedIds.map(id=>persons[id]).filter(Boolean);
+  return(
+    <div style={{marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+        <label style={{fontSize:11,color:C.sub,fontWeight:600}}>{label}</label>
+        <button onClick={()=>setOpen(o=>!o)} style={{fontSize:10,padding:"2px 8px",borderRadius:6,border:`1px solid ${open?color:C.border}`,background:open?`${color}18`:"transparent",color:open?color:C.muted,cursor:"pointer",fontFamily:"inherit"}}>{open?"Скрыть":"+ Добавить"}</button>
+      </div>
+      {selected.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:open?6:0}}>{selected.map(p=>(<div key={p.id} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 6px 3px 4px",borderRadius:20,background:`${color}18`,border:`1px solid ${color}40`,fontSize:10.5,color}}><Avatar person={p} size={16}/><span>{p.name} {p.surname}</span><X size={10} style={{cursor:"pointer",marginLeft:2}} onClick={()=>onToggle(p.id,false)}/></div>))}</div>}
+      {open&&<PersonPicker C={C} persons={persons} excludeIds={excludeIds} selectedIds={selectedIds} onToggle={onToggle} maxItems={maxItems} color={color}/>}
+    </div>
+  );
+}
+
+function rrect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+function App(){
+  const[stage,setStage]=useState("loading");
+  const[identityName,setIdentityName]=useState("");
+  const[nameInput,setNameInput]=useState("");
+  const[treesIndex,setTreesIndex]=useState([]);
+  const[currentTreeId,setCurrentTreeId]=useState(null);
+  const[newTreeModal,setNewTreeModal]=useState(false);
+  const[newTreeTitle,setNewTreeTitle]=useState("");
+  const[toast,setToast]=useState(null);
+  const[importModal,setImportModal]=useState(false);
+  const[importQuery,setImportQuery]=useState("");
+  const[importBusy,setImportBusy]=useState(false);
+  const[importSelected,setImportSelected]=useState(null);
+  const[allTreesCache,setAllTreesCache]=useState({});
+  const[dark,setDark]=useState(true);
+  const[persons,setPersons]=useState({});
+  const[positions,setPositions]=useState({});
+  const[loaded,setLoaded]=useState(false);
+  const[selectedId,setSelectedId]=useState(null);
+  const[editModal,setEditModal]=useState(null);
+  const[editForm,setEditForm]=useState({});
+  const[editParentIds,setEditParentIds]=useState([]);
+  const[editSpouseIds,setEditSpouseIds]=useState([]);
+  const[editChildrenIds,setEditChildrenIds]=useState([]);
+  const[search,setSearch]=useState("");
+  const[tr,setTr]=useState({x:390,y:90,k:0.68});
+  const[hoveredCard,setHoveredCard]=useState(null);
+
+  const containerRef=useRef(null);
+  const panRef=useRef(null);
+  const cardDragRef=useRef(null);
+  const trRef=useRef(tr);
+  const touchRef=useRef(null);
+  const saveTimer=useRef(null);
+
+  useEffect(()=>{trRef.current=tr;},[tr]);
+
+  const loadTreeData=useCallback(async(id)=>{
+    setLoaded(false);
+    let data=null;
+    try{const r=await storage.get(`tree-data:${id}`);if(r&&r.value)data=JSON.parse(r.value);}catch(e){}
+    setPersons(data?.persons||{});
+    setPositions(data?.positions||{});
+    setCurrentTreeId(id);
+    setSelectedId(null);setEditModal(null);setSearch("");setTr({x:390,y:90,k:0.68});
+    setStage("tree");setLoaded(true);
+    try{await storage.set("last-tree-id",id);}catch(e){}
+  },[]);
+
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      let name=null;
+      try{const r=await storage.get("identity-name");if(r&&r.value)name=r.value;}catch(e){}
+      let idx=null;
+      try{const r=await storage.get("trees-index");if(r&&r.value)idx=JSON.parse(r.value);}catch(e){}
+      if(!idx){
+        idx=[{id:"default",title:"Наша семья",owner:"Семья",createdAt:Date.now(),count:Object.keys(INIT_PERSONS).length}];
+        try{await storage.set("trees-index",JSON.stringify(idx));}catch(e){}
+        try{await storage.set("tree-data:default",JSON.stringify({persons:INIT_PERSONS,positions:INIT_POS}));}catch(e){}
+      }
+      if(cancelled)return;
+      setTreesIndex(idx);
+      if(!name){setStage("identity");return;}
+      setIdentityName(name);
+      let lastId=null;
+      try{const r=await storage.get("last-tree-id");if(r&&r.value)lastId=r.value;}catch(e){}
+      if(lastId&&idx.some(t=>t.id===lastId)){await loadTreeData(lastId);}
+      else{setStage("hub");}
+    })();
+    return()=>{cancelled=true;};
+  },[loadTreeData]);
+
+  useEffect(()=>{
+    if(!loaded||!currentTreeId||stage!=="tree")return;
+    if(saveTimer.current)clearTimeout(saveTimer.current);
+    saveTimer.current=setTimeout(async()=>{
+      try{await storage.set(`tree-data:${currentTreeId}`,JSON.stringify({persons,positions}));}catch(e){}
+      setTreesIndex(prev=>{
+        const next=prev.map(t=>t.id===currentTreeId?{...t,count:Object.keys(persons).length}:t);
+        try{storage.set("trees-index",JSON.stringify(next));}catch(e){}
+        return next;
+      });
+    },500);
+    return()=>clearTimeout(saveTimer.current);
+  },[persons,positions,loaded,currentTreeId,stage]);
+
+  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(null),5000);return()=>clearTimeout(t);},[toast]);
+
+  const C=useMemo(()=>({
+    bg:dark?"#070b18":"#eef0f5",
+    hdr:dark?"rgba(7,11,24,0.9)":"rgba(238,240,245,0.92)",
+    card:dark?"rgba(18,25,55,0.84)":"rgba(255,255,255,0.9)",
+    cardSel:dark?"rgba(99,102,241,0.24)":"rgba(99,102,241,0.13)",
+    border:dark?"rgba(255,255,255,0.09)":"rgba(0,0,0,0.08)",
+    borderSel:"#6366f1",borderMatch:"#f59e0b",
+    text:dark?"#e8eaf0":"#18202e",sub:dark?"#8b95b0":"#5a6380",
+    muted:dark?"#4a5270":"#9aa0b8",
+    panel:dark?"rgba(8,12,28,0.97)":"rgba(255,255,255,0.98)",
+    modal:dark?"#0d1225":"#ffffff",
+    inp:dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.04)",
+    spouseStroke:dark?"rgba(255,255,255,0.14)":"rgba(0,0,0,0.1)",
+    childStroke:dark?"rgba(255,255,255,0.22)":"rgba(0,0,0,0.16)",
+    accentStroke:dark?"rgba(99,102,241,0.38)":"rgba(99,102,241,0.28)",
+    grip:dark?"rgba(255,255,255,0.18)":"rgba(0,0,0,0.18)",
+    gripHover:"#6366f1",
+  }),[dark]);
+
+  useEffect(()=>{
+    const el=containerRef.current;if(!el)return;
+    const fn=e=>{
+      e.preventDefault();
+      const rect=el.getBoundingClientRect();
+      const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      const f=e.deltaY<0?1.1:0.9;
+      setTr(p=>{const k=Math.max(0.1,Math.min(3,p.k*f));return{x:mx-(mx-p.x)*(k/p.k),y:my-(my-p.y)*(k/p.k),k};});
+    };
+    el.addEventListener("wheel",fn,{passive:false});
+    return()=>el.removeEventListener("wheel",fn);
+  },[stage]);
+
+  const onCanvasMouseDown=e=>{if(e.button!==0)return;panRef.current={ox:e.clientX-tr.x,oy:e.clientY-tr.y};};
+  const onCardDragStart=(e,id)=>{
+    e.stopPropagation();e.preventDefault();
+    const pos=positions[id];
+    cardDragRef.current={id,startMx:e.clientX,startMy:e.clientY,startPx:pos.x,startPy:pos.y};
+    document.body.style.cursor="grabbing";
+  };
+  const onMouseMove=useCallback(e=>{
+    if(cardDragRef.current){
+      const{id,startMx,startMy,startPx,startPy}=cardDragRef.current;
+      const k=trRef.current.k;
+      setPositions(p=>({...p,[id]:{x:startPx+(e.clientX-startMx)/k,y:startPy+(e.clientY-startMy)/k}}));
+    }else if(panRef.current){
+      setTr(p=>({...p,x:e.clientX-panRef.current.ox,y:e.clientY-panRef.current.oy}));
+    }
+  },[]);
+  const onMouseUp=()=>{panRef.current=null;cardDragRef.current=null;document.body.style.cursor="";};
+
+  const onTouchStart=e=>{
+    if(e.touches.length===1)touchRef.current={ox:e.touches[0].clientX-tr.x,oy:e.touches[0].clientY-tr.y,mode:"pan"};
+    else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;touchRef.current={mode:"pinch",dist:Math.hypot(dx,dy),k:tr.k,x:tr.x,y:tr.y};}
+  };
+  const onTouchMove=e=>{
+    e.preventDefault();const t=touchRef.current;if(!t)return;
+    if(t.mode==="pan"&&e.touches.length===1)setTr(p=>({...p,x:e.touches[0].clientX-t.ox,y:e.touches[0].clientY-t.oy}));
+    else if(t.mode==="pinch"&&e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;setTr({x:t.x,y:t.y,k:Math.max(0.1,Math.min(3,t.k*Math.hypot(dx,dy)/t.dist))});}
+  };
+  const onTouchEnd=()=>{touchRef.current=null;};
+
+  const searchMatches=useMemo(()=>{
+    if(!search.trim())return null;
+    const q=search.toLowerCase();
+    return new Set(Object.values(persons).filter(p=>`${p.name} ${p.surname}`.toLowerCase().includes(q)).map(p=>p.id));
+  },[search,persons]);
+
+  const{spouseLines,childLines}=useMemo(()=>{
+    const sl=[],cl=[],seen=new Set();
+    Object.values(persons).forEach(p=>{
+      (p.spouses||[]).forEach(s=>{const k=[p.id,s.id].sort().join("|");if(!seen.has(k)&&positions[p.id]&&positions[s.id]){seen.add(k);sl.push({a:p.id,b:s.id});}});
+      const vp=(p.parents||[]).filter(pid=>positions[pid]);
+      if(vp.length>0&&positions[p.id])cl.push({child:p.id,parents:vp});
+    });
+    return{spouseLines:sl,childLines:cl};
+  },[persons,positions]);
+
+  const selPerson=selectedId?persons[selectedId]:null;
+  const{selParents,selSpouses,selChildren}=useMemo(()=>{
+    if(!selPerson)return{selParents:[],selSpouses:[],selChildren:[]};
+    return{selParents:(selPerson.parents||[]).map(id=>persons[id]).filter(Boolean),selSpouses:(selPerson.spouses||[]).map(s=>persons[s.id]).filter(Boolean),selChildren:Object.values(persons).filter(p=>(p.parents||[]).includes(selPerson.id))};
+  },[selPerson,persons]);
+
+  const selSiblings=useMemo(()=>{if(!selPerson||!selPerson.parents?.length)return[];const pids=new Set(selPerson.parents);return Object.values(persons).filter(p=>p.id!==selPerson.id&&(p.parents||[]).some(pid=>pids.has(pid)));},[selPerson,persons]);
+  const selAuntsUncles=useMemo(()=>{if(!selPerson)return[];const map=new Map();(selPerson.parents||[]).forEach(pid=>{const par=persons[pid];if(!par||!par.parents?.length)return;const gpids=new Set(par.parents);Object.values(persons).forEach(p=>{if(p.id!==par.id&&(p.parents||[]).some(g=>gpids.has(g))){map.set(p.id,p);(p.spouses||[]).forEach(s=>{if(persons[s.id])map.set(s.id,persons[s.id]);});}});});return Array.from(map.values());},[selPerson,persons]);
+  const selCousins=useMemo(()=>{if(!selAuntsUncles.length)return[];const auIds=new Set(selAuntsUncles.map(a=>a.id));return Object.values(persons).filter(p=>(p.parents||[]).some(pid=>auIds.has(pid)));},[selAuntsUncles,persons]);
+  const selGrandparents=useMemo(()=>{if(!selPerson)return[];const map=new Map();(selPerson.parents||[]).forEach(pid=>{const par=persons[pid];if(!par)return;(par.parents||[]).forEach(gpid=>{if(persons[gpid])map.set(gpid,persons[gpid]);});});return Array.from(map.values());},[selPerson,persons]);
+  const selGrandchildren=useMemo(()=>{if(!selChildren.length)return[];const cIds=new Set(selChildren.map(c=>c.id));return Object.values(persons).filter(p=>(p.parents||[]).some(pid=>cIds.has(pid)));},[selChildren,persons]);
+  const selInLaws=useMemo(()=>{const z=[],n=[];selChildren.forEach(c=>{(c.spouses||[]).forEach(s=>{const sp=persons[s.id];if(!sp)return;if(c.gender==="female")z.push(sp);else if(c.gender==="male")n.push(sp);});});return{zyat:z,nevestka:n,all:[...z,...n]};},[selChildren,persons]);
+  const selNephewsNieces=useMemo(()=>{if(!selSiblings.length)return[];const sIds=new Set(selSiblings.map(s=>s.id));return Object.values(persons).filter(p=>(p.parents||[]).some(pid=>sIds.has(pid)));},[selSiblings,persons]);
+  const selAge=useMemo(()=>selPerson?calcAge(selPerson.birthDate,selPerson.death):null,[selPerson]);
+
+  const detailSections=selPerson?[
+    {label:"Дедушки и бабушки",items:selGrandparents},
+    {label:"Родители",items:selParents},
+    {label:"Братья и сёстры",items:selSiblings,breakdown:gbd(selSiblings,"брата","сестры")},
+    {label:"Дяди и тёти",items:selAuntsUncles,breakdown:gbd(selAuntsUncles,"дядей","тётей")},
+    {label:"Двоюродные братья и сёстры",items:selCousins,breakdown:gbd(selCousins,"брата","сестры")},
+    {label:"Супруги",items:selSpouses},
+    {label:"Дети",items:selChildren},
+    {label:"Зятья и невестки",items:selInLaws.all,breakdown:[selInLaws.zyat.length?`${selInLaws.zyat.length} зятя`:"",selInLaws.nevestka.length?`${selInLaws.nevestka.length} невестки`:""].filter(Boolean).join(" · ")},
+    {label:"Внуки",items:selGrandchildren},
+    {label:"Племянники и племянницы",items:selNephewsNieces,breakdown:gbd(selNephewsNieces,"племянника","племянницы")},
+  ]:[];
+
+  const submitIdentity=async()=>{const name=nameInput.trim();if(!name)return;setIdentityName(name);try{await storage.set("identity-name",name);}catch(e){}setStage("hub");};
+
+  const createTree=async()=>{
+    const title=newTreeTitle.trim()||"Новое дерево";
+    const id=`t${Date.now()}`,selfId=`p${Date.now()}`;
+    const initP={[selfId]:{id:selfId,name:identityName||"",surname:"",birthDate:"",death:"",city:"",country:"",bio:"",gender:"unknown",photo:null,parents:[],spouses:[]}};
+    const initPos={[selfId]:{x:300,y:200}};
+    const meta={id,title,owner:identityName||"Без имени",createdAt:Date.now(),count:1};
+    try{await storage.set(`tree-data:${id}`,JSON.stringify({persons:initP,positions:initPos}));}catch(e){}
+    const newIdx=[...treesIndex,meta];setTreesIndex(newIdx);
+    try{await storage.set("trees-index",JSON.stringify(newIdx));}catch(e){}
+    setPersons(initP);setPositions(initPos);setCurrentTreeId(id);
+    setSelectedId(null);setSearch("");setTr({x:390,y:90,k:0.68});
+    setNewTreeModal(false);setNewTreeTitle("");setStage("tree");setLoaded(true);
+    try{await storage.set("last-tree-id",id);}catch(e){}
+  };
+
+  const deleteTree=async(id)=>{
+    if(!window.confirm("Удалить это дерево безвозвратно?"))return;
+    try{await storage.delete(`tree-data:${id}`);}catch(e){}
+    const newIdx=treesIndex.filter(t=>t.id!==id);setTreesIndex(newIdx);
+    try{await storage.set("trees-index",JSON.stringify(newIdx));}catch(e){}
+  };
+
+  const openImportModal=async()=>{
+    setImportModal(true);setImportSelected(null);setImportQuery("");setImportBusy(true);
+    const others=treesIndex.filter(t=>t.id!==currentTreeId);
+    const cache={};
+    for(const t of others){try{const r=await storage.get(`tree-data:${t.id}`);if(r&&r.value)cache[t.id]=JSON.parse(r.value);}catch(e){}}
+    setAllTreesCache(cache);setImportBusy(false);
+  };
+
+  const importResults=useMemo(()=>{
+    if(!importQuery.trim())return[];
+    const q=importQuery.toLowerCase();const out=[];
+    Object.entries(allTreesCache).forEach(([tid,data])=>{
+      const title=treesIndex.find(t=>t.id===tid)?.title||tid;
+      Object.values(data.persons||{}).forEach(p=>{if(`${p.name} ${p.surname}`.toLowerCase().includes(q))out.push({treeId:tid,treeTitle:title,person:p});});
+    });
+    return out.slice(0,30);
+  },[importQuery,allTreesCache,treesIndex]);
+
+  const importTree=(treeId,anchorOrigId,treeTitle)=>{
+    const data=allTreesCache[treeId];if(!data)return;
+    const idMap={};Object.keys(data.persons||{}).forEach(oid=>{idMap[oid]=`imp_${treeId}_${oid}`;});
+    const remapped={};
+    Object.values(data.persons||{}).forEach(p=>{remapped[idMap[p.id]]={...p,id:idMap[p.id],parents:(p.parents||[]).map(pid=>idMap[pid]).filter(Boolean),spouses:(p.spouses||[]).map(s=>({...s,id:idMap[s.id]})).filter(s=>s.id)};});
+    const curVals=Object.values(positions);
+    const curMaxY=curVals.length?Math.max(...curVals.map(p=>p.y)):0;
+    const curMinX=curVals.length?Math.min(...curVals.map(p=>p.x)):0;
+    const srcVals=Object.values(data.positions||{});
+    const srcMinX=srcVals.length?Math.min(...srcVals.map(p=>p.x)):0;
+    const srcMinY=srcVals.length?Math.min(...srcVals.map(p=>p.y)):0;
+    const remappedPos={};
+    Object.entries(data.positions||{}).forEach(([oid,pos])=>{if(idMap[oid])remappedPos[idMap[oid]]={x:pos.x+(curMinX-srcMinX),y:pos.y+(curMaxY+260-srcMinY)};});
+    setPersons(prev=>({...prev,...remapped}));setPositions(prev=>({...prev,...remappedPos}));
+    const newAnchorId=idMap[anchorOrigId];
+    const anchorPos=remappedPos[newAnchorId];
+    if(anchorPos&&containerRef.current){const rect=containerRef.current.getBoundingClientRect();setTr(p=>({x:rect.width/2-(anchorPos.x+CW/2)*p.k,y:rect.height/2-(anchorPos.y+CH/2)*p.k,k:p.k}));}
+    setSelectedId(newAnchorId);setImportModal(false);setImportSelected(null);setImportQuery("");
+    setToast(`Ветка «${treeTitle}» импортирована (${Object.keys(data.persons||{}).length} чел.). Откройте редактирование, чтобы связать с вашим деревом.`);
+  };
+
+  const openNew=()=>{const id=`p${Date.now()}`;setEditForm({id,name:"",surname:"",birthDate:"",death:"",city:"",country:"",gender:"male",bio:"",parents:[],spouses:[],photo:null});setEditParentIds([]);setEditSpouseIds([]);setEditChildrenIds([]);setEditModal("new");};
+  const openEdit=p=>{setEditForm({...p});setEditParentIds([...(p.parents||[])]);setEditSpouseIds((p.spouses||[]).map(s=>s.id));setEditChildrenIds(Object.values(persons).filter(x=>(x.parents||[]).includes(p.id)).map(x=>x.id));setEditModal(p.id);};
+
+  const saveEdit=()=>{
+    const id=editForm.id;
+    const updated={...editForm,parents:[...editParentIds],spouses:editSpouseIds.map(sid=>({id:sid,order:1}))};
+    setPersons(prev=>{
+      const next={...prev,[id]:updated};
+      editChildrenIds.forEach(cid=>{if(next[cid]&&!(next[cid].parents||[]).includes(id))next[cid]={...next[cid],parents:[...(next[cid].parents||[]),id]};});
+      Object.values(prev).filter(p=>(p.parents||[]).includes(id)&&p.id!==id).forEach(child=>{if(!editChildrenIds.includes(child.id)&&next[child.id])next[child.id]={...next[child.id],parents:(next[child.id].parents||[]).filter(pid=>pid!==id)};});
+      editSpouseIds.forEach(sid=>{if(next[sid]&&!(next[sid].spouses||[]).some(s=>s.id===id))next[sid]={...next[sid],spouses:[...(next[sid].spouses||[]),{id,order:1}]};});
+      (prev[id]?.spouses||[]).map(s=>s.id).forEach(sid=>{if(!editSpouseIds.includes(sid)&&next[sid])next[sid]={...next[sid],spouses:(next[sid].spouses||[]).filter(s=>s.id!==id)};});
+      return next;
+    });
+    if(!positions[id])setPositions(p=>({...p,[id]:{x:300,y:300}}));
+    setEditModal(null);
+  };
+
+  const delPerson=id=>{setPersons(prev=>{const n={...prev};delete n[id];return n;});setPositions(prev=>{const n={...prev};delete n[id];return n;});setSelectedId(null);setEditModal(null);};
+  const toggleParent=(pid,add)=>setEditParentIds(p=>add?[...p,pid]:p.filter(x=>x!==pid));
+  const toggleSpouse=(sid,add)=>setEditSpouseIds(p=>add?[...p,sid]:p.filter(x=>x!==sid));
+  const toggleChild=(cid,add)=>setEditChildrenIds(p=>add?[...p,cid]:p.filter(x=>x!==cid));
+
+  const exportPNG=()=>{
+    const margin=60,sc=2;
+    const all=Object.entries(positions).filter(([id])=>persons[id]);if(!all.length)return;
+    const xs=all.map(([,p])=>p.x),ys=all.map(([,p])=>p.y);
+    const minX=Math.min(...xs)-margin,minY=Math.min(...ys)-margin;
+    const W=Math.max(...xs)+CW+margin-minX,H=Math.max(...ys)+CH+margin-minY;
+    const canvas=document.createElement("canvas");canvas.width=W*sc;canvas.height=H*sc;
+    const ctx=canvas.getContext("2d");ctx.scale(sc,sc);ctx.translate(-minX,-minY);
+    ctx.fillStyle=dark?"#070b18":"#eef0f5";ctx.fillRect(minX,minY,W,H);
+    spouseLines.forEach(({a,b})=>{const pa=positions[a],pb=positions[b];if(!pa||!pb)return;ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=dark?"rgba(255,255,255,0.18)":"rgba(0,0,0,0.12)";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pa.x+CW/2,pa.y+CH/2);ctx.lineTo(pb.x+CW/2,pb.y+CH/2);ctx.stroke();ctx.restore();});
+    childLines.forEach(({child,parents})=>{const cp=positions[child];if(!cp)return;let sx,sy;if(parents.length===1){const pp=positions[parents[0]];if(!pp)return;sx=pp.x+CW/2;sy=pp.y+CH;}else{const p1=positions[parents[0]],p2=positions[parents[1]];if(!p1||!p2)return;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;ctx.strokeStyle=dark?"rgba(255,255,255,0.25)":"rgba(0,0,0,0.18)";ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(sx,sy);ctx.bezierCurveTo(sx,my,ex,my,ex,ey);ctx.stroke();});
+    Object.values(persons).forEach(p=>{const pos=positions[p.id];if(!pos)return;ctx.fillStyle=dark?"rgba(18,25,60,0.95)":"rgba(255,255,255,0.95)";ctx.strokeStyle=dark?"rgba(255,255,255,0.12)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.setLineDash([]);rrect(ctx,pos.x,pos.y,CW,CH,10);ctx.fill();ctx.stroke();const[c1,c2]=gc(p.gender);const g=ctx.createLinearGradient(pos.x+10,pos.y+10,pos.x+36,pos.y+36);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.beginPath();ctx.arc(pos.x+22,pos.y+28,13,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.fillText((p.name||"?")[0],pos.x+22,pos.y+32);ctx.textAlign="left";ctx.fillStyle=dark?"#dde2f0":"#1a2035";ctx.font="bold 10px sans-serif";ctx.fillText((p.name||"").slice(0,17)+(p.name?.length>17?"…":""),pos.x+40,pos.y+22);ctx.fillStyle=dark?"#8b95b0":"#5a6380";ctx.font="9px sans-serif";ctx.fillText((p.surname||"").slice(0,17)+(p.surname?.length>17?"…":""),pos.x+40,pos.y+33);ctx.fillStyle=dark?"#4a5270":"#9aa0b8";ctx.font="8.5px sans-serif";const age=calcAge(p.birthDate,p.death);const d=[p.birthDate?`р. ${p.birthDate}`:"",p.death?`† ${p.death}`:"",age!==null?`(${age})`:""].filter(Boolean).join(" · ");if(d)ctx.fillText(d.slice(0,28),pos.x+10,pos.y+58);const loc=[p.city,p.country].filter(Boolean).join(", ");if(loc)ctx.fillText(loc.slice(0,26),pos.x+10,pos.y+70);});
+    canvas.toBlob(blob=>{const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="family-tree.png";a.click();URL.revokeObjectURL(url);},"image/png");
+  };
+
+  const iStyle={width:"100%",boxSizing:"border-box",padding:"7px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.inp,color:C.text,fontSize:12,outline:"none",fontFamily:"inherit"};
+  const bBase={background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,padding:"5px 10px",color:C.text,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:4,fontFamily:"inherit"};
+  const relRow=rel=>(<div key={rel.id} onClick={()=>setSelectedId(rel.id)} style={{display:"flex",alignItems:"center",gap:7,padding:"3px 0",cursor:"pointer"}}><Avatar person={rel} size={20}/><span style={{fontSize:11,color:"#6366f1"}}>{rel.name} {rel.surname}</span></div>);
+  const currentTree=treesIndex.find(t=>t.id===currentTreeId);
+  const spinStyle="@keyframes spin{to{transform:rotate(360deg)}}@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}";
+
+  if(stage==="loading")return(<div style={{width:"100vw",height:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,fontFamily:"sans-serif"}}><div style={{width:34,height:34,borderRadius:"50%",border:"3px solid rgba(99,102,241,0.22)",borderTopColor:"#6366f1",animation:"spin 0.8s linear infinite"}}/><div style={{color:C.sub,fontSize:13}}>Загрузка…</div><style>{spinStyle}</style></div>);
+
+  if(stage==="identity")return(
+    <div style={{width:"100vw",height:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',system-ui,sans-serif",padding:20}}>
+      <div style={{width:"100%",maxWidth:360,background:C.panel,backdropFilter:"blur(24px)",border:`1px solid ${C.border}`,borderRadius:18,padding:28,boxShadow:"0 24px 80px rgba(0,0,0,0.3)",textAlign:"center"}}>
+        <div style={{width:52,height:52,borderRadius:16,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}><Users size={26} color="#fff"/></div>
+        <h1 style={{fontSize:18,fontWeight:800,color:C.text,margin:"0 0 6px"}}>Семейное Древо</h1>
+        <p style={{fontSize:12.5,color:C.sub,margin:"0 0 20px",lineHeight:1.5}}>Введите имя, чтобы продолжить. Вы сможете создать своё дерево или открыть существующее.</p>
+        <input value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submitIdentity()} placeholder="Ваше имя" autoFocus style={{...iStyle,textAlign:"center",fontSize:14,padding:"10px 12px",marginBottom:12}}/>
+        <button onClick={submitIdentity} disabled={!nameInput.trim()} style={{width:"100%",padding:11,borderRadius:10,border:"none",background:nameInput.trim()?"linear-gradient(135deg,#6366f1,#8b5cf6)":C.inp,color:nameInput.trim()?"#fff":C.muted,cursor:nameInput.trim()?"pointer":"not-allowed",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>Продолжить</button>
+      </div>
+      <style>{spinStyle}</style>
+    </div>
+  );
+
+  if(stage==="hub")return(
+    <div style={{width:"100vw",height:"100vh",background:C.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",overflowY:"auto"}}>
+      <div style={{position:"sticky",top:0,zIndex:10,background:C.hdr,backdropFilter:"blur(20px)",borderBottom:`1px solid ${C.border}`,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center"}}><Users size={16} color="#fff"/></div>
+          <span style={{color:C.text,fontWeight:800,fontSize:16}}>Мои деревья</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <button onClick={()=>setDark(d=>!d)} style={{...bBase,color:dark?"#fbbf24":"#6366f1"}}>{dark?<Sun size={14}/>:<Moon size={14}/>}</button>
+          <button onClick={()=>{setNameInput(identityName);setStage("identity");}} style={bBase}><UserCircle size={14}/> {identityName}</button>
+        </div>
+      </div>
+      <div style={{maxWidth:640,margin:"0 auto",padding:"24px 18px"}}>
+        <button onClick={()=>setNewTreeModal(true)} style={{width:"100%",padding:"14px",borderRadius:14,border:`1.5px dashed ${C.border}`,background:"transparent",color:C.sub,cursor:"pointer",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:18,fontFamily:"inherit"}}><Plus size={16}/> Создать новое дерево</button>
+        {[...treesIndex].sort((a,b)=>b.createdAt-a.createdAt).map(t=>(
+          <div key={t.id} onClick={()=>loadTreeData(t.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:14,background:C.card,border:`1px solid ${C.border}`,backdropFilter:"blur(12px)",cursor:"pointer",marginBottom:10}}>
+            <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Users size={18} color="#fff"/></div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13.5,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>
+              <div style={{fontSize:11,color:C.sub}}>Автор: {t.owner} · {t.count||0} чел.</div>
+            </div>
+            <button onClick={e=>{e.stopPropagation();deleteTree(t.id);}} style={{background:"none",border:"none",cursor:"pointer",color:C.muted,padding:6,display:"flex"}}><Trash2 size={15}/></button>
+            <ChevronRight size={16} color={C.muted}/>
+          </div>
+        ))}
+      </div>
+      {newTreeModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&setNewTreeModal(false)}>
+          <div style={{width:"100%",maxWidth:360,background:C.modal,borderRadius:16,padding:22,border:`1px solid ${C.border}`,boxShadow:"0 30px 100px rgba(0,0,0,0.5)"}}>
+            <h2 style={{color:C.text,fontSize:15,margin:"0 0 14px",fontWeight:800}}>Новое дерево</h2>
+            <input value={newTreeTitle} onChange={e=>setNewTreeTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createTree()} placeholder="Например: Семья Ивановых" autoFocus style={{...iStyle,marginBottom:14}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={createTree} style={{flex:1,padding:9,borderRadius:10,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>Создать</button>
+              <button onClick={()=>setNewTreeModal(false)} style={{padding:"9px 16px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.sub,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <style>{spinStyle}</style>
+    </div>
+  );
+
+  if(!loaded)return(<div style={{width:"100vw",height:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,fontFamily:"sans-serif"}}><div style={{width:34,height:34,borderRadius:"50%",border:"3px solid rgba(99,102,241,0.22)",borderTopColor:"#6366f1",animation:"spin 0.8s linear infinite"}}/><div style={{color:C.sub,fontSize:13}}>Загрузка дерева…</div><style>{spinStyle}</style></div>);
+
+  return(
+    <div style={{width:"100vw",height:"100vh",background:C.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,zIndex:200,background:C.hdr,backdropFilter:"blur(20px) saturate(1.4)",borderBottom:`1px solid ${C.border}`,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <button onClick={()=>setStage("hub")} style={bBase}><ArrowLeft size={14}/></button>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <div style={{width:30,height:30,borderRadius:9,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center"}}><Users size={15} color="#fff"/></div>
+          <span style={{color:C.text,fontWeight:800,fontSize:15,maxWidth:140,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{currentTree?.title||"Семейное Древо"}</span>
+        </div>
+        <div style={{flex:1,minWidth:120,maxWidth:230,position:"relative"}}>
+          <Search size={13} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:C.muted}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Поиск…" style={{...iStyle,paddingLeft:30,borderRadius:20}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:C.muted,padding:0,display:"flex"}}><X size={12}/></button>}
+        </div>
+        <div style={{display:"flex",gap:5,alignItems:"center",marginLeft:"auto",flexWrap:"wrap"}}>
+          <button onClick={()=>setTr(p=>({...p,k:Math.min(3,p.k*1.2)}))} style={bBase}><ZoomIn size={14}/></button>
+          <button onClick={()=>setTr(p=>({...p,k:Math.max(0.1,p.k*0.82)}))} style={bBase}><ZoomOut size={14}/></button>
+          <button onClick={()=>setTr({x:390,y:90,k:0.68})} style={bBase}><Home size={14}/></button>
+          <div style={{width:1,height:20,background:C.border}}/>
+          <button onClick={()=>setDark(d=>!d)} style={{...bBase,color:dark?"#fbbf24":"#6366f1"}}>{dark?<Sun size={14}/>:<Moon size={14}/>}</button>
+          <button onClick={openImportModal} style={bBase} title="Найти общего родственника"><GitBranch size={14}/></button>
+          <button onClick={openNew} style={{...bBase,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",color:"#fff",borderRadius:18,padding:"6px 13px"}}><Plus size={13}/> Добавить</button>
+          <button onClick={exportPNG} style={bBase}><Download size={14}/> PNG</button>
+        </div>
+      </div>
+
+      {toast&&<div style={{position:"fixed",top:60,left:"50%",transform:"translateX(-50%)",zIndex:500,background:C.panel,backdropFilter:"blur(20px)",border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",fontSize:12,color:C.text,maxWidth:340,textAlign:"center",boxShadow:"0 12px 40px rgba(0,0,0,0.3)",animation:"slideUp 0.2s ease"}}>{toast}</div>}
+
+      <div ref={containerRef} style={{position:"absolute",inset:0,top:52,overflow:"hidden",touchAction:"none",cursor:"grab"}}
+        onMouseDown={onCanvasMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}>
+          <g transform={`translate(${tr.x},${tr.y}) scale(${tr.k})`}>
+            {spouseLines.map(({a,b})=>{const pa=positions[a],pb=positions[b];if(!pa||!pb)return null;const hi=selectedId&&(selectedId===a||selectedId===b);return<line key={`s-${a}-${b}`} x1={pa.x+CW/2} y1={pa.y+CH/2} x2={pb.x+CW/2} y2={pb.y+CH/2} stroke={hi?C.accentStroke:C.spouseStroke} strokeWidth={hi?2:1.5} strokeDasharray="5,4"/>;})}
+            {childLines.map(({child,parents})=>{const cp=positions[child];if(!cp)return null;let sx,sy;if(parents.length===1){const pp=positions[parents[0]];if(!pp)return null;sx=pp.x+CW/2;sy=pp.y+CH;}else{const p1=positions[parents[0]],p2=positions[parents[1]];if(!p1||!p2)return null;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;const hi=selectedId&&(parents.includes(selectedId)||child===selectedId);return<path key={`c-${child}`} d={`M${sx} ${sy} C${sx} ${my},${ex} ${my},${ex} ${ey}`} fill="none" stroke={hi?C.accentStroke:C.childStroke} strokeWidth={hi?2:1.5}/>;})}
+          </g>
+        </svg>
+        <div style={{position:"absolute",top:0,left:0,transformOrigin:"0 0",transform:`translate(${tr.x}px,${tr.y}px) scale(${tr.k})`,pointerEvents:"none"}}>
+          {Object.values(persons).map(person=>{
+            const pos=positions[person.id];if(!pos)return null;
+            const isSel=selectedId===person.id;
+            const isMatch=searchMatches?.has(person.id);
+            const isDim=searchMatches&&!isMatch;
+            const isRel=selectedId&&!isSel&&(selPerson?.parents?.includes(person.id)||selPerson?.spouses?.some(s=>s.id===person.id)||person.parents?.includes(selectedId));
+            const isHov=hoveredCard===person.id;
+            const age=calcAge(person.birthDate,person.death);
+            return(
+              <div key={person.id} onMouseEnter={()=>setHoveredCard(person.id)} onMouseLeave={()=>setHoveredCard(null)}
+                style={{position:"absolute",left:pos.x,top:pos.y,width:CW,height:CH,background:isSel?C.cardSel:C.card,border:`1px solid ${isSel?C.borderSel:isMatch?C.borderMatch:isRel?"rgba(99,102,241,0.35)":C.border}`,borderRadius:10,backdropFilter:"blur(12px)",padding:"9px 10px",pointerEvents:"auto",boxSizing:"border-box",userSelect:"none",boxShadow:isSel?"0 0 0 2px rgba(99,102,241,0.45),0 8px 32px rgba(0,0,0,0.28)":isRel?"0 0 0 1px rgba(99,102,241,0.2)":"0 2px 10px rgba(0,0,0,0.14)",opacity:isDim?0.2:1,transition:"opacity 0.2s,box-shadow 0.2s"}}>
+                <div onMouseDown={e=>onCardDragStart(e,person.id)} title="Переместить" style={{position:"absolute",top:0,left:0,width:22,height:CH,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",borderRadius:"10px 0 0 10px",background:isHov?"rgba(99,102,241,0.1)":"transparent",zIndex:2}}><GripVertical size={12} color={isHov?C.gripHover:C.grip} style={{pointerEvents:"none"}}/></div>
+                <div style={{paddingLeft:14,cursor:"pointer"}} onClick={()=>setSelectedId(id=>id===person.id?null:person.id)} onMouseDown={e=>e.stopPropagation()}>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:7}}>
+                    <Avatar person={person} size={31}/>
+                    <div style={{flex:1,overflow:"hidden"}}>
+                      <div style={{fontSize:10.5,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.3}}>{person.name||"—"}</div>
+                      <div style={{fontSize:9.5,color:C.sub,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.35}}>{person.surname||""}</div>
+                    </div>
+                  </div>
+                  {(person.birthDate||person.death)&&<div style={{marginTop:5,fontSize:8.5,color:C.muted,lineHeight:1.4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{[person.birthDate?`р. ${person.birthDate}`:"",person.death?`† ${person.death}`:""].filter(Boolean).join(" · ")}{age!==null&&<span> · {age} л.</span>}</div>}
+                  {(person.city||person.country)&&<div style={{fontSize:8.5,color:C.muted,opacity:0.7,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{[person.city,person.country].filter(Boolean).join(", ")}</div>}
+                </div>
+                {person.death&&<div style={{position:"absolute",top:7,right:7,width:6,height:6,borderRadius:"50%",background:"#64748b"}}/>}
+                {isSel&&<div style={{position:"absolute",bottom:-1,left:CW/2-4,width:8,height:3,borderRadius:"2px 2px 0 0",background:"#6366f1"}}/>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{position:"absolute",bottom:16,left:16,zIndex:100,fontSize:11,color:C.muted,background:C.hdr,backdropFilter:"blur(10px)",border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 10px"}}>{Math.round(tr.k*100)}%</div>
+
+      {selPerson&&(
+        <div style={{position:"absolute",bottom:16,right:16,width:272,maxHeight:"calc(100vh - 80px)",overflowY:"auto",background:C.panel,backdropFilter:"blur(24px)",borderRadius:14,border:`1px solid ${C.border}`,padding:16,zIndex:300,boxShadow:"0 24px 80px rgba(0,0,0,0.3)",animation:"slideUp 0.2s ease"}}>
+          <button onClick={()=>setSelectedId(null)} style={{position:"absolute",top:11,right:11,background:"none",border:"none",cursor:"pointer",color:C.muted,padding:3,display:"flex"}}><X size={14}/></button>
+          <button onClick={()=>openEdit(selPerson)} style={{position:"absolute",top:11,right:34,background:"none",border:"none",cursor:"pointer",color:"#6366f1",padding:3,display:"flex"}}><Edit2 size={14}/></button>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:13}}>
+            <Avatar person={selPerson} size={46}/>
+            <div><div style={{fontSize:14,fontWeight:800,color:C.text,lineHeight:1.25}}>{selPerson.name}</div><div style={{fontSize:12,color:C.sub}}>{selPerson.surname}</div></div>
+          </div>
+          {[{icon:<Calendar size={11}/>,val:[selPerson.birthDate?`р. ${selPerson.birthDate}`:"",selPerson.death?`† ${selPerson.death}`:"",selAge!==null?(selPerson.death?`возраст ${ageLabel(selAge)}`:ageLabel(selAge)):""].filter(Boolean).join("  ·  ")},{icon:<MapPin size={11}/>,val:[selPerson.city,selPerson.country].filter(Boolean).join(", ")}].filter(d=>d.val).map((d,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,color:C.sub,fontSize:11}}><span style={{color:C.muted,flexShrink:0}}>{d.icon}</span>{d.val}</div>))}
+          {selPerson.bio&&<div style={{fontSize:11,color:C.sub,marginTop:6,lineHeight:1.5,padding:"6px 8px",background:C.inp,borderRadius:6}}>{selPerson.bio}</div>}
+          {detailSections.filter(s=>s.items.length>0).map(section=>(
+            <div key={section.label} style={{marginTop:10}}>
+              <div style={{fontSize:9.5,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:section.breakdown?2:5,fontWeight:600}}>{section.label} ({section.items.length})</div>
+              {section.breakdown&&<div style={{fontSize:10,color:C.sub,marginBottom:5}}>{section.breakdown}</div>}
+              {section.items.map(relRow)}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&setEditModal(null)}>
+          <div style={{width:"100%",maxWidth:440,maxHeight:"90vh",overflowY:"auto",background:C.modal,borderRadius:16,padding:22,border:`1px solid ${C.border}`,boxShadow:"0 30px 100px rgba(0,0,0,0.5)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+              <h2 style={{color:C.text,fontSize:15,margin:0,fontWeight:800}}>{editModal==="new"?"Добавить человека":"Редактировать"}</h2>
+              <button onClick={()=>setEditModal(null)} style={{background:"none",border:"none",cursor:"pointer",color:C.muted,display:"flex"}}><X size={16}/></button>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:11,color:C.sub,display:"block",marginBottom:5,fontWeight:600}}>Пол</label>
+              <div style={{display:"flex",gap:6}}>{[["male","Мужской","#6366f1"],["female","Женский","#ec4899"],["unknown","Неизвестно","#0ea5e9"]].map(([v,l,col])=>(<button key={v} onClick={()=>setEditForm(f=>({...f,gender:v}))} style={{flex:1,padding:"6px 4px",borderRadius:8,fontSize:10.5,cursor:"pointer",fontFamily:"inherit",fontWeight:600,border:`1px solid ${editForm.gender===v?col:C.border}`,background:editForm.gender===v?`${col}22`:"transparent",color:editForm.gender===v?col:C.sub}}>{l}</button>))}</div>
+            </div>
+            {[["name","Имя"],["surname","Фамилия"],["birthDate","Дата рождения (ДД.ММ.ГГГГ)"],["death","Год смерти"],["city","Город"],["country","Страна"]].map(([key,label])=>(<div key={key} style={{marginBottom:10}}><label style={{fontSize:11,color:C.sub,display:"block",marginBottom:3,fontWeight:600}}>{label}</label><input value={editForm[key]||""} onChange={e=>setEditForm(f=>({...f,[key]:e.target.value}))} style={iStyle}/></div>))}
+            <div style={{marginBottom:14}}><label style={{fontSize:11,color:C.sub,display:"block",marginBottom:3,fontWeight:600}}>Биография</label><textarea value={editForm.bio||""} onChange={e=>setEditForm(f=>({...f,bio:e.target.value}))} rows={2} style={{...iStyle,resize:"vertical"}}/></div>
+            <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginBottom:2}}><RelSection C={C} label="Родители (макс. 2)" color="#6366f1" selectedIds={editParentIds} persons={persons} excludeIds={[editForm.id,...editChildrenIds]} maxItems={2} onToggle={toggleParent}/></div>
+            <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginBottom:2}}><RelSection C={C} label="Супруги" color="#f43f5e" selectedIds={editSpouseIds} persons={persons} excludeIds={[editForm.id]} maxItems={null} onToggle={toggleSpouse}/></div>
+            <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginBottom:14}}><RelSection C={C} label="Дети" color="#10b981" selectedIds={editChildrenIds} persons={persons} excludeIds={[editForm.id,...editParentIds]} maxItems={null} onToggle={toggleChild}/></div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={saveEdit} style={{flex:1,padding:9,borderRadius:10,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>Сохранить</button>
+              {editModal!=="new"&&<button onClick={()=>delPerson(editModal)} style={{padding:"9px 14px",borderRadius:10,background:"transparent",border:"1px solid #ef4444",color:"#ef4444",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Удалить</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&setImportModal(false)}>
+          <div style={{width:"100%",maxWidth:420,maxHeight:"80vh",overflowY:"auto",background:C.modal,borderRadius:16,padding:20,border:`1px solid ${C.border}`,boxShadow:"0 30px 100px rgba(0,0,0,0.5)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <h2 style={{color:C.text,fontSize:15,margin:0,fontWeight:800}}>Найти общего родственника</h2>
+              <button onClick={()=>setImportModal(false)} style={{background:"none",border:"none",cursor:"pointer",color:C.muted,display:"flex"}}><X size={16}/></button>
+            </div>
+            <p style={{fontSize:11.5,color:C.sub,margin:"0 0 14px",lineHeight:1.5}}>Поиск по всем деревьям. Импортируйте ветку и свяжите через редактирование.</p>
+            {importSelected?(
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:12,background:C.inp,borderRadius:10,marginBottom:14}}><Avatar person={importSelected.person} size={36}/><div><div style={{fontSize:13,fontWeight:700,color:C.text}}>{importSelected.person.name} {importSelected.person.surname}</div><div style={{fontSize:11,color:C.sub}}>Дерево «{importSelected.treeTitle}»</div></div></div>
+                <p style={{fontSize:12,color:C.sub,marginBottom:14,lineHeight:1.5}}>Будет импортировано {Object.keys(allTreesCache[importSelected.treeId]?.persons||{}).length} человек из этого дерева.</p>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>importTree(importSelected.treeId,importSelected.person.id,importSelected.treeTitle)} style={{flex:1,padding:9,borderRadius:10,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>Импортировать ветку</button>
+                  <button onClick={()=>setImportSelected(null)} style={{padding:"9px 16px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.sub,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Назад</button>
+                </div>
+              </div>
+            ):(
+              <>
+                <div style={{position:"relative",marginBottom:10}}><Search size={13} style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:C.muted}}/><input value={importQuery} onChange={e=>setImportQuery(e.target.value)} placeholder="Имя или фамилия…" autoFocus style={{...iStyle,paddingLeft:30}}/></div>
+                {importBusy&&<div style={{fontSize:12,color:C.muted,textAlign:"center",padding:14}}>Загрузка деревьев…</div>}
+                {!importBusy&&treesIndex.length<=1&&<div style={{fontSize:12,color:C.muted,textAlign:"center",padding:14}}>Других деревьев пока нет</div>}
+                {!importBusy&&treesIndex.length>1&&importQuery.trim()&&importResults.length===0&&<div style={{fontSize:12,color:C.muted,textAlign:"center",padding:14}}>Никого не найдено в других деревьях</div>}
+                {!importBusy&&importResults.map((r,i)=>(<div key={r.treeId+r.person.id+i} onClick={()=>setImportSelected(r)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 6px",borderRadius:8,cursor:"pointer"}}><Avatar person={r.person} size={28}/><div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,color:C.text}}>{r.person.name} {r.person.surname}</div><div style={{fontSize:10.5,color:C.muted}}>Дерево «{r.treeTitle}»</div></div><ChevronRight size={14} color={C.muted}/></div>))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      <style>{spinStyle+`input::placeholder,textarea::placeholder{color:${C.muted}}`}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
