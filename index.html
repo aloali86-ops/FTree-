@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Семейное Древо</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:'Segoe UI',system-ui,sans-serif}
+body{overflow:hidden}
+input,textarea,button,select{font-family:inherit;font-size:inherit}
+button{cursor:pointer}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(128,128,128,0.3);border-radius:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:600;padding:16px;backdrop-filter:blur(4px)}
+.fade{animation:fadeIn .2s ease}
+.spin{animation:spin .8s linear infinite}
+</style>
+</head>
+<body>
+<div id="app" style="width:100vw;height:100vh"></div>
+<script>
+// ═══════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════
+const INIT_P = {
+  p1:{id:"p1",surname:"Наншанло",name:"Абдулла Паншарович",birthDate:"15.03.1930",death:"2021",city:"Пржевальск",country:"СССР",bio:"",gender:"male",parents:[],spouses:[{id:"p2"}]},
+  p2:{id:"p2",surname:"Юсупова",name:"Нана",birthDate:"22.07.1933",death:"1987",city:"Пржевальск",country:"СССР",bio:"",gender:"female",parents:[],spouses:[{id:"p1"}]},
+  p3:{id:"p3",surname:"Наншанло",name:"Анвар Абдулаевич",birthDate:"28.09.1962",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",parents:["p1","p2"],spouses:[{id:"p4"}]},
+  p4:{id:"p4",surname:"Машанло",name:"Зухра Дыдызовна",birthDate:"23.01.1964",death:"",city:"Токмок",country:"СССР",bio:"",gender:"female",parents:[],spouses:[{id:"p3"}]},
+  p5:{id:"p5",surname:"Наншанло",name:"Алишер Анварович",birthDate:"28.09.1986",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",parents:["p3","p4"],spouses:[{id:"p1778075489361"}]},
+  p6:{id:"p6",surname:"Наншанло",name:"Зайнура Анваровна",birthDate:"29.03.1984",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"female",parents:["p3","p4"],spouses:[{id:"p1778075295202"}]},
+  p1778075295202:{id:"p1778075295202",surname:"Мамиев",name:"Ринат",birthDate:"24.05.1980",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",parents:[],spouses:[{id:"p6"}]},
+  p1778075489361:{id:"p1778075489361",surname:"Ваншу",name:"Рахия Гайсыровна",birthDate:"07.12.1987",death:"",city:"Токмок",country:"СССР",bio:"",gender:"female",parents:["p1778159628424","p1778159686969"],spouses:[{id:"p5"}]},
+  p1778075538942:{id:"p1778075538942",surname:"Мамиева",name:"Алина Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p6","p1778075295202"],spouses:[{id:"p1778075960975"}]},
+  p1778075629720:{id:"p1778075629720",surname:"Мамиева",name:"Аяна Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p6","p1778075295202"],spouses:[]},
+  p1778075717998:{id:"p1778075717998",surname:"Мамиева",name:"Малика Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p6","p1778075295202"],spouses:[]},
+  p1778075785882:{id:"p1778075785882",surname:"Мамиева",name:"Хамида Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p6","p1778075295202"],spouses:[]},
+  p1778075884864:{id:"p1778075884864",surname:"Мамиева",name:"Фарида Ринатовна",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p6","p1778075295202"],spouses:[]},
+  p1778075960975:{id:"p1778075960975",surname:"Макеев",name:"Алишер",birthDate:"",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"male",parents:[],spouses:[{id:"p1778075538942"}]},
+  p1778075999966:{id:"p1778075999966",surname:"Макеева",name:"Фатима Алишеровна",birthDate:"",death:"",city:"",country:"",bio:"",gender:"female",parents:["p1778075538942","p1778075960975"],spouses:[]},
+  p1778076064447:{id:"p1778076064447",surname:"Анваров",name:"Ислам Алишерович",birthDate:"20.12.2011",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"unknown",parents:["p5","p1778075489361"],spouses:[]},
+  p1778076129834:{id:"p1778076129834",surname:"Анваров",name:"Ахмад Алишерович",birthDate:"13.06.2014",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"male",parents:["p5","p1778075489361"],spouses:[]},
+  p1778076844156:{id:"p1778076844156",surname:"Наншанло",name:"Аскар Анварович",birthDate:"19.02.1989",death:"",city:"Пржевальск",country:"СССР",bio:"",gender:"male",parents:["p4","p3"],spouses:[{id:"p1778080146638"}]},
+  p1778080146638:{id:"p1778080146638",surname:"Машанло",name:"Салима Ильясовна",birthDate:"23.08.1991",death:"",city:"",country:"Украина",bio:"",gender:"female",parents:[],spouses:[{id:"p1778076844156"}]},
+  p1778080219001:{id:"p1778080219001",surname:"Наншанло",name:"Азиля Аскаровна",birthDate:"10.08.2010",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p1778076844156","p1778080146638"],spouses:[]},
+  p1778080274977:{id:"p1778080274977",surname:"Наншанло",name:"Шахноза Аскаровна",birthDate:"07.10.2012",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"female",parents:["p1778080146638","p1778076844156"],spouses:[]},
+  p1778080350080:{id:"p1778080350080",surname:"Наншанло",name:"Абду Маджит Аскарович",birthDate:"28.12.2014",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"male",parents:["p1778076844156","p1778080146638"],spouses:[]},
+  p1778080401488:{id:"p1778080401488",surname:"Наншанло",name:"Мухаммад Аскарович",birthDate:"20.12.2021",death:"",city:"Каракол",country:"Кыргызстан",bio:"",gender:"male",parents:["p1778076844156","p1778080146638"],spouses:[]},
+  p1778159628424:{id:"p1778159628424",surname:"Ваншу",name:"Гайсыр Омарович",birthDate:"01.01.1961",death:"",city:"Токмок",country:"СССР",bio:"",gender:"male",parents:[],spouses:[{id:"p1778159686969"}]},
+  p1778159686969:{id:"p1778159686969",surname:"Исмарова",name:"Бинлар Исхаровна",birthDate:"03.01.1967",death:"",city:"Масанчи",country:"СССР",bio:"",gender:"female",parents:[],spouses:[{id:"p1778159628424"}]},
+  p1778159777353:{id:"p1778159777353",surname:"Ваншу",name:"Айша Гайсыровна",birthDate:"21.01.1986",death:"",city:"Токмок",country:"СССР",bio:"",gender:"female",parents:["p1778159628424","p1778159686969"],spouses:[{id:"p1778160021679"}]},
+  p1778159831228:{id:"p1778159831228",surname:"Ваншу",name:"Сания Гайсыровна",birthDate:"31.07.1996",death:"",city:"Токмок",country:"Кыргызстан",bio:"",gender:"female",parents:["p1778159686969","p1778159628424"],spouses:[]},
+  p1778159884833:{id:"p1778159884833",surname:"Ваншу",name:"Асия Гайсыровна",birthDate:"09.12.2000",death:"",city:"Токмок",country:"Кыргызстан",bio:"",gender:"female",parents:["p1778159628424","p1778159686969"],spouses:[]},
+  p1778160021679:{id:"p1778160021679",surname:"",name:"Рашид",birthDate:"26.09.1980",death:"2025",city:"Сортобе",country:"СССР",bio:"",gender:"male",parents:[],spouses:[{id:"p1778159777353"}]},
+  p1778160107436:{id:"p1778160107436",surname:"",name:"Лейла Рашидовна",birthDate:"01.01.2009",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"unknown",parents:["p1778160021679","p1778159777353"],spouses:[]},
+  p1778160154209:{id:"p1778160154209",surname:"",name:"Салия Рашидовна",birthDate:"29.09.2012",death:"",city:"Бишкек",country:"Кыргызстан",bio:"",gender:"female",parents:["p1778160021679","p1778159777353"],spouses:[]},
+  p1778166980636:{id:"p1778166980636",surname:"",name:"Лайсян Рашидовна",birthDate:"",death:"",city:"Сортобе",country:"Казахстан",bio:"",gender:"female",parents:["p1778160021679","p1778159777353"],spouses:[]},
+};
+const INIT_POS={
+  p1:{x:58,y:18},p2:{x:205,y:17},p3:{x:60,y:260},p4:{x:200,y:263},
+  p5:{x:86,y:443},p6:{x:-279,y:439},
+  p1778075295202:{x:-420,y:444},p1778075489361:{x:224,y:444},
+  p1778075538942:{x:-632,y:648},p1778075629720:{x:-499,y:649},
+  p1778075717998:{x:-366,y:648},p1778075785882:{x:-235,y:647},
+  p1778075884864:{x:-103,y:647},p1778075960975:{x:-761,y:647},
+  p1778075999966:{x:-698,y:825},p1778076064447:{x:80,y:652},
+  p1778076129834:{x:240,y:655},p1778076844156:{x:523,y:448},
+  p1778080146638:{x:671,y:449},p1778080219001:{x:404,y:652},
+  p1778080274977:{x:537,y:652},p1778080350080:{x:687,y:649},
+  p1778080401488:{x:837,y:649},p1778159628424:{x:1087,y:244},
+  p1778159686969:{x:1233,y:242},p1778159777353:{x:1160,y:444},
+  p1778159831228:{x:1310,y:444},p1778159884833:{x:1460,y:444},
+  p1778160021679:{x:1029,y:447},p1778160107436:{x:1017,y:648},
+  p1778160154209:{x:1153,y:648},p1778166980636:{x:1281,y:650},
+};
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+const CW=160,CH=92;
+let S={
+  stage:'loading',ident:'',nameInput:'',
+  treesIndex:[],treeId:null,
+  dark:true,persons:{},pos:{},loaded:false,
+  selId:null,search:'',tr:{x:390,y:90,k:.68},
+  editModal:null,ef:{},ePar:[],eSp:[],eCh:[],pickerOpen:null,pickerQ:'',
+  toast:null,toastTimer:null,
+  importModal:false,importQ:'',importBusy:false,importSel:null,treeCache:{},
+  newTreeModal:false,newTreeTitle:''
+};
+let _saveTimer=null;
+
+// ═══════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════
+const db={
+  get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+function calcAge(b,d){
+  if(!b)return null;
+  const p=b.split('.');if(p.length<3)return null;
+  const dd=+p[0],mm=+p[1],yy=+p[2];if(!yy||isNaN(yy))return null;
+  if(d){const dy=+d;if(!isNaN(dy))return dy-yy>=0?dy-yy:null;}
+  const now=new Date();let a=now.getFullYear()-yy;
+  if(now.getMonth()<mm-1||(now.getMonth()===mm-1&&now.getDate()<dd))a--;
+  return a>=0?a:null;
+}
+function ageLabel(a){
+  if(a==null)return'';
+  const m10=a%10,m100=a%100;
+  if(m100>=11&&m100<=14)return a+' лет';
+  if(m10===1)return a+' год';
+  if(m10>=2&&m10<=4)return a+' года';
+  return a+' лет';
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function gc(g){return g==='male'?['#6366f1','#818cf8']:g==='female'?['#ec4899','#f472b6']:['#0ea5e9','#38bdf8'];}
+function avatarSVG(p,sz){
+  const[c1,c2]=gc(p.gender),l=esc((p.name||'?')[0]);
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%"><defs><linearGradient id="g${p.id.replace(/[^a-z0-9]/gi,'_')}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><circle cx="${sz/2}" cy="${sz/2}" r="${sz/2}" fill="url(#g${p.id.replace(/[^a-z0-9]/gi,'_')})"/><text x="${sz/2}" y="${sz/2+sz*0.14}" text-anchor="middle" fill="#fff" font-size="${sz*0.38}" font-weight="800" font-family="sans-serif">${l}</text></svg>`;
+}
+function C(){
+  const d=S.dark;
+  return{
+    bg:d?'#070b18':'#eef0f5',
+    hdr:d?'rgba(7,11,24,0.92)':'rgba(238,240,245,0.94)',
+    card:d?'rgba(18,25,55,0.86)':'rgba(255,255,255,0.92)',
+    cardSel:d?'rgba(99,102,241,0.24)':'rgba(99,102,241,0.13)',
+    border:d?'rgba(255,255,255,0.09)':'rgba(0,0,0,0.09)',
+    text:d?'#e8eaf0':'#18202e',
+    sub:d?'#8b95b0':'#5a6380',
+    muted:d?'#4a5270':'#9aa0b8',
+    panel:d?'rgba(8,12,28,0.98)':'rgba(255,255,255,0.99)',
+    modal:d?'#0d1225':'#ffffff',
+    inp:d?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)',
+    ss:d?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)',
+    cs:d?'rgba(255,255,255,0.22)':'rgba(0,0,0,0.16)',
+    as:'rgba(99,102,241,0.4)'
+  };
+}
+function gbd(items,mw,fw){
+  const m=items.filter(p=>p.gender==='male').length;
+  const f=items.filter(p=>p.gender==='female').length;
+  const o=items.length-m-f;
+  return[m?m+' '+mw:'',f?f+' '+fw:'',o?o+' др.':''].filter(Boolean).join(' · ');
+}
+function getRelatives(){
+  const p=S.persons[S.selId];if(!p)return{};
+  const pars=(p.parents||[]).map(id=>S.persons[id]).filter(Boolean);
+  const sps=(p.spouses||[]).map(s=>S.persons[s.id]).filter(Boolean);
+  const chs=Object.values(S.persons).filter(x=>(x.parents||[]).includes(p.id));
+  const sibs_=new Set(p.parents||[]);
+  const sibs=Object.values(S.persons).filter(x=>x.id!==p.id&&(x.parents||[]).some(pid=>sibs_.has(pid)));
+  const auMap=new Map();
+  (p.parents||[]).forEach(pid=>{const par=S.persons[pid];if(!par||!par.parents?.length)return;const gp=new Set(par.parents);Object.values(S.persons).forEach(x=>{if(x.id!==par.id&&(x.parents||[]).some(g=>gp.has(g))){auMap.set(x.id,x);(x.spouses||[]).forEach(s=>{if(S.persons[s.id])auMap.set(s.id,S.persons[s.id]);});}});});
+  const aus=Array.from(auMap.values());
+  const auIds=new Set(aus.map(a=>a.id));
+  const cous=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>auIds.has(pid)));
+  const gpMap=new Map();
+  (p.parents||[]).forEach(pid=>{const par=S.persons[pid];if(par)(par.parents||[]).forEach(gpid=>{if(S.persons[gpid])gpMap.set(gpid,S.persons[gpid]);});});
+  const gps=Array.from(gpMap.values());
+  const cIds=new Set(chs.map(c=>c.id));
+  const gcs=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>cIds.has(pid)));
+  const z=[],n=[];
+  chs.forEach(c=>{(c.spouses||[]).forEach(s=>{const sp=S.persons[s.id];if(!sp)return;if(c.gender==='female')z.push(sp);else if(c.gender==='male')n.push(sp);});});
+  const sIds=new Set(sibs.map(x=>x.id));
+  const neps=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>sIds.has(pid)));
+  return{pars,sps,chs,sibs,aus,cous,gps,gcs,inLaws:{z,n,all:[...z,...n]},neps};
+}
+function getLines(){
+  const spL=[],chL=[],seen=new Set();
+  Object.values(S.persons).forEach(p=>{
+    (p.spouses||[]).forEach(s=>{const k=[p.id,s.id].sort().join('|');if(!seen.has(k)&&S.pos[p.id]&&S.pos[s.id]){seen.add(k);spL.push({a:p.id,b:s.id});}});
+    const vp=(p.parents||[]).filter(pid=>S.pos[pid]);
+    if(vp.length&&S.pos[p.id])chL.push({child:p.id,parents:vp});
+  });
+  return{spL,chL};
+}
+function showToast(msg){
+  clearTimeout(S.toastTimer);
+  S.toast=msg;
+  renderToast();
+  S.toastTimer=setTimeout(()=>{S.toast=null;renderToast();},4000);
+}
+
+// ═══════════════════════════════════════
+//  AUTOSAVE
+// ═══════════════════════════════════════
+function schedSave(){
+  if(!S.loaded||!S.treeId||S.stage!=='tree')return;
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(()=>{
+    db.set('td:'+S.treeId,JSON.stringify({persons:S.persons,positions:S.pos}));
+    S.treesIndex=S.treesIndex.map(t=>t.id===S.treeId?{...t,n:Object.keys(S.persons).length}:t);
+    db.set('tidx',JSON.stringify(S.treesIndex));
+  },600);
+}
+
+// ═══════════════════════════════════════
+//  INIT / LOAD
+// ═══════════════════════════════════════
+async function init(){
+  render();
+  let name=db.get('iname');
+  let idx=null;try{const r=db.get('tidx');if(r)idx=JSON.parse(r);}catch(e){}
+  if(!idx){
+    idx=[{id:'default',title:'Наша семья',owner:'Семья',ts:Date.now(),n:Object.keys(INIT_P).length}];
+    db.set('tidx',JSON.stringify(idx));
+    db.set('td:default',JSON.stringify({persons:INIT_P,positions:INIT_POS}));
+  }
+  S.treesIndex=idx;
+  if(!name){S.stage='identity';render();return;}
+  S.ident=name;
+  let lastId=db.get('last-tid');
+  if(lastId&&idx.some(t=>t.id===lastId)){await loadTree(lastId);}
+  else{S.stage='hub';render();}
+}
+
+async function loadTree(id){
+  S.loaded=false;S.stage='tree';render();
+  let data=null;try{const r=db.get('td:'+id);if(r)data=JSON.parse(r);}catch(e){}
+  S.persons=data&&data.persons?data.persons:{};
+  S.pos=data&&data.positions?data.positions:{};
+  S.treeId=id;S.selId=null;S.editModal=null;S.search='';S.tr={x:390,y:90,k:.68};
+  S.loaded=true;
+  db.set('last-tid',id);
+  render();
+}
+
+// ═══════════════════════════════════════
+//  MAIN RENDER ROUTER
+// ═══════════════════════════════════════
+function render(){
+  document.body.style.background=C().bg;
+  const app=document.getElementById('app');
+  if(S.stage==='loading'){renderLoading(app);return;}
+  if(S.stage==='identity'){renderIdentity(app);return;}
+  if(S.stage==='hub'){renderHub(app);return;}
+  if(S.stage==='tree'){renderTreeScreen(app);return;}
+}
+
+// ═══════════════════════════════════════
+//  LOADING SCREEN
+// ═══════════════════════════════════════
+function renderLoading(app){
+  const c=C();
+  app.innerHTML=`<div style="width:100vw;height:100vh;background:${c.bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+    <div class="spin" style="width:36px;height:36px;border-radius:50%;border:3px solid rgba(99,102,241,0.2);border-top-color:#6366f1"></div>
+    <div style="color:${c.sub};font-size:13px">Загрузка…</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+//  IDENTITY SCREEN
+// ═══════════════════════════════════════
+function renderIdentity(app){
+  const c=C();
+  app.innerHTML=`<div style="width:100vw;height:100vh;background:${c.bg};display:flex;align-items:center;justify-content:center;padding:20px">
+    <div class="fade" style="width:100%;max-width:340px;background:${c.panel};backdrop-filter:blur(20px);border:1px solid ${c.border};border-radius:18px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,0.3);text-align:center">
+      <div style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <h1 style="font-size:20px;font-weight:800;color:${c.text};margin:0 0 8px">Семейное Древо</h1>
+      <p style="font-size:13px;color:${c.sub};margin:0 0 22px;line-height:1.5">Введите ваше имя, чтобы открыть или создать своё дерево</p>
+      <input id="nameInput" value="${esc(S.nameInput)}" placeholder="Ваше имя" autocomplete="name"
+        style="width:100%;padding:11px;border-radius:10px;border:1px solid ${c.border};background:${c.inp};color:${c.text};font-size:15px;outline:none;text-align:center;margin-bottom:12px"/>
+      <button id="identBtn" style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14px;font-weight:700">Продолжить →</button>
+    </div>
+  </div>`;
+  const inp=document.getElementById('nameInput');
+  inp.addEventListener('input',e=>{S.nameInput=e.target.value;});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')doIdent();});
+  inp.focus();
+  document.getElementById('identBtn').addEventListener('click',doIdent);
+}
+function doIdent(){
+  const name=(S.nameInput||'').trim();
+  if(!name)return;
+  S.ident=name;S.nameInput='';
+  db.set('iname',name);
+  S.stage='hub';render();
+}
+
+// ═══════════════════════════════════════
+//  HUB SCREEN
+// ═══════════════════════════════════════
+function renderHub(app){
+  const c=C();
+  const sorted=[...S.treesIndex].sort((a,b)=>b.ts-a.ts);
+  const treeCards=sorted.map(t=>`
+    <div class="tree-card" data-id="${t.id}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:${c.card};border:1px solid ${c.border};cursor:pointer;margin-bottom:10px">
+      <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:${c.text};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.title)}</div>
+        <div style="font-size:11px;color:${c.sub}">Автор: ${esc(t.owner)} · ${t.n||0} чел.</div>
+      </div>
+      <button class="del-tree" data-id="${t.id}" style="background:none;border:none;cursor:pointer;padding:6px;color:${c.muted}" title="Удалить">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </button>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c.muted}" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>`).join('');
+  app.innerHTML=`<div style="width:100vw;height:100vh;background:${c.bg};overflow-y:auto">
+    <div style="position:sticky;top:0;z-index:10;background:${c.hdr};backdrop-filter:blur(20px);border-bottom:1px solid ${c.border};padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <span style="color:${c.text};font-weight:800;font-size:16px">Мои деревья</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="darkBtn" style="background:transparent;border:1px solid ${c.border};border-radius:8px;padding:5px 10px;color:${S.dark?'#fbbf24':'#6366f1'};display:flex;align-items:center">
+          ${S.dark?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>'}
+        </button>
+        <button id="changeNameBtn" style="background:transparent;border:1px solid ${c.border};border-radius:8px;padding:5px 10px;color:${c.text};font-size:12px;display:flex;align-items:center;gap:4px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          ${esc(S.ident)}
+        </button>
+      </div>
+    </div>
+    <div style="max-width:600px;margin:0 auto;padding:20px 16px">
+      <button id="newTreeBtn" style="width:100%;padding:14px;border-radius:14px;border:1.5px dashed ${c.border};background:transparent;color:${c.sub};font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать новое дерево
+      </button>
+      ${treeCards}
+    </div>
+  </div>`;
+  document.getElementById('darkBtn').addEventListener('click',()=>{S.dark=!S.dark;render();});
+  document.getElementById('changeNameBtn').addEventListener('click',()=>{S.nameInput=S.ident;S.stage='identity';render();});
+  document.getElementById('newTreeBtn').addEventListener('click',()=>{S.newTreeModal=true;renderHubModal();});
+  document.querySelectorAll('.tree-card').forEach(el=>{
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.del-tree'))return;
+      loadTree(el.dataset.id);
+    });
+  });
+  document.querySelectorAll('.del-tree').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(!confirm('Удалить это дерево?'))return;
+      const id=el.dataset.id;
+      db.del('td:'+id);
+      S.treesIndex=S.treesIndex.filter(t=>t.id!==id);
+      db.set('tidx',JSON.stringify(S.treesIndex));
+      render();
+    });
+  });
+  if(S.newTreeModal)renderHubModal();
+}
+function renderHubModal(){
+  const c=C();
+  let m=document.getElementById('hub-modal');
+  if(m)m.remove();
+  if(!S.newTreeModal)return;
+  m=document.createElement('div');
+  m.id='hub-modal';m.className='modal-backdrop';
+  m.innerHTML=`<div class="fade" style="width:100%;max-width:340px;background:${c.modal};border-radius:16px;padding:22px;border:1px solid ${c.border};box-shadow:0 30px 100px rgba(0,0,0,0.5)">
+    <h2 style="color:${c.text};font-size:15px;margin:0 0 14px;font-weight:800">Новое дерево</h2>
+    <input id="newTreeInp" value="${esc(S.newTreeTitle)}" placeholder="Например: Семья Ивановых" style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid ${c.border};background:${c.inp};color:${c.text};font-size:13px;outline:none;margin-bottom:14px"/>
+    <div style="display:flex;gap:8px">
+      <button id="createTreeBtn" style="flex:1;padding:10px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:13px;font-weight:700">Создать</button>
+      <button id="cancelTreeBtn" style="padding:10px 16px;border-radius:10px;background:transparent;border:1px solid ${c.border};color:${c.sub};font-size:12px">Отмена</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  const inp=document.getElementById('newTreeInp');
+  inp.addEventListener('input',e=>{S.newTreeTitle=e.target.value;});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')doCreateTree();});
+  inp.focus();
+  document.getElementById('createTreeBtn').addEventListener('click',doCreateTree);
+  document.getElementById('cancelTreeBtn').addEventListener('click',()=>{S.newTreeModal=false;S.newTreeTitle='';m.remove();});
+  m.addEventListener('click',e=>{if(e.target===m){S.newTreeModal=false;S.newTreeTitle='';m.remove();}});
+}
+function doCreateTree(){
+  const title=(S.newTreeTitle||'').trim()||'Новое дерево';
+  const id='t'+Date.now(),sid='p'+Date.now();
+  const ip={[sid]:{id:sid,name:S.ident||'',surname:'',birthDate:'',death:'',city:'',country:'',bio:'',gender:'unknown',parents:[],spouses:[]}};
+  const ipp={[sid]:{x:300,y:200}};
+  const meta={id,title,owner:S.ident||'Без имени',ts:Date.now(),n:1};
+  db.set('td:'+id,JSON.stringify({persons:ip,positions:ipp}));
+  S.treesIndex=[...S.treesIndex,meta];
+  db.set('tidx',JSON.stringify(S.treesIndex));
+  S.newTreeModal=false;S.newTreeTitle='';
+  loadTree(id);
+}
+
+// ═══════════════════════════════════════
+//  TREE SCREEN
+// ═══════════════════════════════════════
+let _pan=null,_drag=null,_touch=null;
+
+function renderTreeScreen(app){
+  if(!S.loaded){renderLoading(app);return;}
+  const c=C();
+  const ctree=S.treesIndex.find(t=>t.id===S.treeId)||{};
+  app.innerHTML=`
+  <div id="tree-root" style="width:100vw;height:100vh;background:${c.bg};overflow:hidden;position:relative">
+    <!-- HEADER -->
+    <div id="tree-hdr" style="position:absolute;top:0;left:0;right:0;z-index:100;background:${c.hdr};backdrop-filter:blur(20px);border-bottom:1px solid ${c.border};padding:9px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <button id="backBtn" style="background:transparent;border:1px solid ${c.border};border-radius:8px;padding:5px 9px;color:${c.text};display:flex;align-items:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <span style="color:${c.text};font-weight:800;font-size:13px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ctree.title||'Дерево')}</span>
+      </div>
+      <div style="flex:1;min-width:100px;max-width:200px;position:relative">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${c.muted}" stroke-width="2" stroke-linecap="round" style="position:absolute;left:9px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="searchInp" value="${esc(S.search)}" placeholder="Поиск…" style="width:100%;padding:6px 8px 6px 26px;border-radius:20px;border:1px solid ${c.border};background:${c.inp};color:${c.text};font-size:12px;outline:none"/>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;margin-left:auto;flex-wrap:wrap">
+        <button id="zInBtn" style="background:transparent;border:1px solid ${c.border};border-radius:7px;padding:5px 8px;color:${c.text};display:flex">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button id="zOutBtn" style="background:transparent;border:1px solid ${c.border};border-radius:7px;padding:5px 8px;color:${c.text};display:flex">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button id="homeBtn" style="background:transparent;border:1px solid ${c.border};border-radius:7px;padding:5px 8px;color:${c.text};display:flex">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </button>
+        <button id="darkBtn2" style="background:transparent;border:1px solid ${c.border};border-radius:7px;padding:5px 8px;color:${S.dark?'#fbbf24':'#6366f1'};display:flex">
+          ${S.dark?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>'}
+        </button>
+        <button id="importBtn" style="background:transparent;border:1px solid ${c.border};border-radius:7px;padding:5px 8px;color:${c.text};display:flex" title="Найти общего родственника">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+        </button>
+        <button id="addBtn" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:16px;padding:6px 12px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Добавить
+        </button>
+        <button id="pngBtn" style="background:transparent;border:1px solid ${c.border};border-radius:7px;padding:5px 8px;color:${c.text};display:flex" title="PNG">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- CANVAS -->
+    <div id="canvas" style="position:absolute;inset:0;top:52px;overflow:hidden;touch-action:none;cursor:grab">
+      <svg id="lines-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
+      <div id="cards-layer" style="position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none"></div>
+    </div>
+    <!-- SCALE -->
+    <div id="scale-badge" style="position:absolute;bottom:14px;left:14px;z-index:50;font-size:11px;color:${c.muted};background:${c.hdr};border:1px solid ${c.border};border-radius:7px;padding:3px 9px">${Math.round(S.tr.k*100)}%</div>
+    <!-- TOAST -->
+    <div id="toast-el" style="display:none;position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:500;background:${c.panel};border:1px solid ${c.border};border-radius:11px;padding:9px 16px;font-size:12px;color:${c.text};max-width:300px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3)"></div>
+    <!-- DETAIL PANEL -->
+    <div id="detail-panel"></div>
+    <!-- MODALS -->
+    <div id="modals"></div>
+  </div>`;
+  bindTreeEvents();
+  renderCanvasContent();
+  renderDetailPanel();
+  renderToast();
+}
+
+function bindTreeEvents(){
+  document.getElementById('backBtn').addEventListener('click',()=>{S.stage='hub';_pan=null;_drag=null;render();});
+  document.getElementById('searchInp').addEventListener('input',e=>{S.search=e.target.value;renderCanvasContent();});
+  document.getElementById('zInBtn').addEventListener('click',()=>{S.tr={...S.tr,k:Math.min(3,S.tr.k*1.2)};applyTransform();});
+  document.getElementById('zOutBtn').addEventListener('click',()=>{S.tr={...S.tr,k:Math.max(0.1,S.tr.k*0.82)};applyTransform();});
+  document.getElementById('homeBtn').addEventListener('click',()=>{S.tr={x:390,y:90,k:.68};applyTransform();});
+  document.getElementById('darkBtn2').addEventListener('click',()=>{S.dark=!S.dark;render();});
+  document.getElementById('importBtn').addEventListener('click',openImport);
+  document.getElementById('addBtn').addEventListener('click',()=>{openEdit(null);});
+  document.getElementById('pngBtn').addEventListener('click',exportPNG);
+
+  const canvas=document.getElementById('canvas');
+  canvas.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    if(e.target.closest('.grip'))return;
+    if(e.target.closest('.card-el'))return;
+    _pan={ox:e.clientX-S.tr.x,oy:e.clientY-S.tr.y};
+    canvas.style.cursor='grabbing';
+  });
+  window.addEventListener('mousemove',onMouseMove);
+  window.addEventListener('mouseup',onMouseUp);
+  canvas.addEventListener('wheel',onWheel,{passive:false});
+  canvas.addEventListener('touchstart',onTouchStart,{passive:false});
+  canvas.addEventListener('touchmove',onTouchMove,{passive:false});
+  canvas.addEventListener('touchend',onTouchEnd);
+}
+
+function onWheel(e){
+  e.preventDefault();
+  const canvas=document.getElementById('canvas');if(!canvas)return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const f=e.deltaY<0?1.1:0.9;
+  const k=Math.max(0.1,Math.min(3,S.tr.k*f));
+  S.tr={x:mx-(mx-S.tr.x)*(k/S.tr.k),y:my-(my-S.tr.y)*(k/S.tr.k),k};
+  applyTransform();
+}
+function onMouseMove(e){
+  if(_drag){
+    const k=S.tr.k;
+    const nx=_drag.px+(e.clientX-_drag.sx)/k;
+    const ny=_drag.py+(e.clientY-_drag.sy)/k;
+    S.pos={...S.pos,[_drag.id]:{x:nx,y:ny}};
+    updateCardPos(_drag.id,nx,ny);
+    updateLines();
+    schedSave();
+  }else if(_pan){
+    S.tr={...S.tr,x:e.clientX-_pan.ox,y:e.clientY-_pan.oy};
+    applyTransform();
+  }
+}
+function onMouseUp(){
+  _pan=null;_drag=null;
+  const canvas=document.getElementById('canvas');if(canvas)canvas.style.cursor='grab';
+}
+function onTouchStart(e){
+  if(e.touches.length===1){
+    const t=e.touches[0];
+    _touch={mode:'pan',ox:t.clientX-S.tr.x,oy:t.clientY-S.tr.y};
+  }else if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    _touch={mode:'pinch',d:Math.hypot(dx,dy),k:S.tr.k,x:S.tr.x,y:S.tr.y};
+  }
+}
+function onTouchMove(e){
+  e.preventDefault();
+  if(!_touch)return;
+  if(_touch.mode==='pan'&&e.touches.length===1){
+    S.tr={...S.tr,x:e.touches[0].clientX-_touch.ox,y:e.touches[0].clientY-_touch.oy};
+    applyTransform();
+  }else if(_touch.mode==='pinch'&&e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const k=Math.max(0.1,Math.min(3,_touch.k*Math.hypot(dx,dy)/_touch.d));
+    S.tr={x:_touch.x,y:_touch.y,k};
+    applyTransform();
+  }
+}
+function onTouchEnd(){_touch=null;}
+
+function applyTransform(){
+  const cl=document.getElementById('cards-layer');
+  if(cl)cl.style.transform=`translate(${S.tr.x}px,${S.tr.y}px) scale(${S.tr.k})`;
+  const svg=document.getElementById('lines-svg');
+  if(svg){const g=svg.querySelector('g');if(g)g.setAttribute('transform',`translate(${S.tr.x},${S.tr.y}) scale(${S.tr.k})`);}
+  const sb=document.getElementById('scale-badge');
+  if(sb)sb.textContent=Math.round(S.tr.k*100)+'%';
+}
+
+function updateCardPos(id,x,y){
+  const el=document.getElementById('card-'+id);
+  if(el){el.style.left=x+'px';el.style.top=y+'px';}
+}
+
+// ═══════════════════════════════════════
+//  CANVAS CONTENT
+// ═══════════════════════════════════════
+function renderCanvasContent(){
+  renderLines();
+  renderCards();
+  applyTransform();
+}
+
+function renderLines(){
+  const svg=document.getElementById('lines-svg');if(!svg)return;
+  const c=C();
+  const{spL,chL}=getLines();
+  let paths='';
+  spL.forEach(({a,b})=>{
+    const pa=S.pos[a],pb=S.pos[b];if(!pa||!pb)return;
+    const hi=S.selId&&(S.selId===a||S.selId===b);
+    paths+=`<line x1="${pa.x+CW/2}" y1="${pa.y+CH/2}" x2="${pb.x+CW/2}" y2="${pb.y+CH/2}" stroke="${hi?c.as:c.ss}" stroke-width="${hi?2:1.5}" stroke-dasharray="5,4"/>`;
+  });
+  chL.forEach(({child,parents})=>{
+    const cp=S.pos[child];if(!cp)return;
+    let sx,sy;
+    if(parents.length===1){const pp=S.pos[parents[0]];if(!pp)return;sx=pp.x+CW/2;sy=pp.y+CH;}
+    else{const p1=S.pos[parents[0]],p2=S.pos[parents[1]];if(!p1||!p2)return;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}
+    const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;
+    const hi=S.selId&&(parents.includes(S.selId)||child===S.selId);
+    paths+=`<path d="M${sx} ${sy} C${sx} ${my},${ex} ${my},${ex} ${ey}" fill="none" stroke="${hi?c.as:c.cs}" stroke-width="${hi?2:1.5}"/>`;
+  });
+  svg.innerHTML=`<g transform="translate(${S.tr.x},${S.tr.y}) scale(${S.tr.k})">${paths}</g>`;
+}
+
+function updateLines(){renderLines();}
+
+function renderCards(){
+  const cl=document.getElementById('cards-layer');if(!cl)return;
+  const c=C();
+  const q=S.search.toLowerCase().trim();
+  const matchIds=q?new Set(Object.values(S.persons).filter(p=>(p.name+' '+p.surname).toLowerCase().includes(q)).map(p=>p.id)):null;
+  let html='';
+  Object.values(S.persons).forEach(p=>{
+    const pp=S.pos[p.id];if(!pp)return;
+    const isSel=S.selId===p.id;
+    const isM=matchIds&&matchIds.has(p.id);
+    const isDim=matchIds&&!isM;
+    const[c1,c2]=gc(p.gender);
+    const age=calcAge(p.birthDate,p.death);
+    const ageStr=age!=null?' · '+age+' л.':'';
+    const dates=[p.birthDate?'р. '+p.birthDate:'',p.death?'† '+p.death:''].filter(Boolean).join(' · ');
+    const loc=[p.city,p.country].filter(Boolean).join(', ');
+    html+=`<div id="card-${p.id}" class="card-el" data-id="${p.id}" style="position:absolute;left:${pp.x}px;top:${pp.y}px;width:${CW}px;height:${CH}px;
+      background:${isSel?c.cardSel:c.card};
+      border:1px solid ${isSel?'#6366f1':isM?'#f59e0b':c.border};
+      border-radius:10px;backdrop-filter:blur(12px);padding:9px 10px;
+      pointer-events:auto;cursor:pointer;box-sizing:border-box;user-select:none;
+      box-shadow:${isSel?'0 0 0 2px rgba(99,102,241,0.45),0 8px 32px rgba(0,0,0,0.25)':'0 2px 10px rgba(0,0,0,0.14)'};
+      opacity:${isDim?0.18:1};transition:opacity .2s">
+      <div class="grip" data-id="${p.id}" style="position:absolute;top:0;left:0;width:22px;height:${CH}px;display:flex;align-items:center;justify-content:center;cursor:grab;border-radius:10px 0 0 10px;z-index:2">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="${c.muted}"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+      </div>
+      <div class="card-body" data-id="${p.id}" style="padding-left:14px">
+        <div style="display:flex;align-items:flex-start;gap:7px">
+          ${avatarSVG(p,31)}
+          <div style="flex:1;overflow:hidden">
+            <div style="font-size:10.5px;font-weight:700;color:${c.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">${esc(p.name||'—')}</div>
+            <div style="font-size:9.5px;color:${c.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35">${esc(p.surname||'')}</div>
+          </div>
+        </div>
+        ${dates||age!=null?`<div style="margin-top:5px;font-size:8.5px;color:${c.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(dates+ageStr)}</div>`:''}
+        ${loc?`<div style="font-size:8.5px;color:${c.muted};opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(loc)}</div>`:''}
+      </div>
+      ${p.death?`<div style="position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:50%;background:#64748b"></div>`:''}
+    </div>`;
+  });
+  cl.innerHTML=html;
+  cl.style.pointerEvents='none';
+  // Attach events
+  cl.querySelectorAll('.card-body').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      const id=el.dataset.id;
+      S.selId=S.selId===id?null:id;
+      renderCards();
+      updateLines();
+      renderDetailPanel();
+    });
+    el.addEventListener('mousedown',e=>e.stopPropagation());
+  });
+  cl.querySelectorAll('.grip').forEach(el=>{
+    el.addEventListener('mousedown',e=>{
+      e.stopPropagation();e.preventDefault();
+      const id=el.dataset.id;const pp=S.pos[id];
+      _drag={id,sx:e.clientX,sy:e.clientY,px:pp.x,py:pp.y};
+      document.body.style.cursor='grabbing';
+    });
+    // Touch drag
+    el.addEventListener('touchstart',e=>{
+      e.stopPropagation();
+      if(e.touches.length!==1)return;
+      const id=el.dataset.id;const pp=S.pos[id];
+      _touch=null;
+      _drag={id,sx:e.touches[0].clientX,sy:e.touches[0].clientY,px:pp.x,py:pp.y};
+    },{passive:true});
+  });
+  // Touch move/end for cards
+  cl.addEventListener('touchmove',e=>{
+    if(!_drag||e.touches.length!==1)return;
+    e.preventDefault();
+    const k=S.tr.k;
+    const nx=_drag.px+(e.touches[0].clientX-_drag.sx)/k;
+    const ny=_drag.py+(e.touches[0].clientY-_drag.sy)/k;
+    S.pos={...S.pos,[_drag.id]:{x:nx,y:ny}};
+    updateCardPos(_drag.id,nx,ny);
+    updateLines();
+    schedSave();
+  },{passive:false});
+  cl.addEventListener('touchend',()=>{_drag=null;});
+}
+
+// ═══════════════════════════════════════
+//  DETAIL PANEL
+// ═══════════════════════════════════════
+function renderDetailPanel(){
+  const dp=document.getElementById('detail-panel');if(!dp)return;
+  if(!S.selId||!S.persons[S.selId]){dp.innerHTML='';return;}
+  const c=C();const p=S.persons[S.selId];
+  const rel=getRelatives();
+  const age=calcAge(p.birthDate,p.death);
+  const dateStr=[p.birthDate?'р. '+p.birthDate:'',p.death?'† '+p.death:'',age!=null?(p.death?'возраст '+ageLabel(age):ageLabel(age)):''].filter(Boolean).join('  ·  ');
+  const locStr=[p.city,p.country].filter(Boolean).join(', ');
+  const sections=[
+    {label:'Дедушки и бабушки',items:rel.gps},
+    {label:'Родители',items:rel.pars},
+    {label:'Братья и сёстры',items:rel.sibs,bd:gbd(rel.sibs,'брата','сестры')},
+    {label:'Дяди и тёти',items:rel.aus,bd:gbd(rel.aus,'дядей','тётей')},
+    {label:'Двоюродные',items:rel.cous,bd:gbd(rel.cous,'брата','сестры')},
+    {label:'Супруги',items:rel.sps},
+    {label:'Дети',items:rel.chs},
+    {label:'Зятья и невестки',items:rel.inLaws.all,bd:[rel.inLaws.z.length?rel.inLaws.z.length+' зятя':'',rel.inLaws.n.length?rel.inLaws.n.length+' невестки':''].filter(Boolean).join(' · ')},
+    {label:'Внуки',items:rel.gcs},
+    {label:'Племянники',items:rel.neps,bd:gbd(rel.neps,'племянника','племянницы')},
+  ].filter(s=>s.items&&s.items.length>0);
+  const secHtml=sections.map(s=>`
+    <div style="margin-top:10px">
+      <div style="font-size:9.5px;color:${c.muted};text-transform:uppercase;letter-spacing:.08em;margin-bottom:${s.bd?2:5}px;font-weight:600">${esc(s.label)} (${s.items.length})</div>
+      ${s.bd?`<div style="font-size:10px;color:${c.sub};margin-bottom:5px">${esc(s.bd)}</div>`:''}
+      ${s.items.map(r=>`<div class="rel-link" data-id="${r.id}" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer">${avatarSVG(r,20)}<span style="font-size:11px;color:#6366f1">${esc(r.name)} ${esc(r.surname)}</span></div>`).join('')}
+    </div>`).join('');
+  dp.innerHTML=`<div class="fade" style="position:absolute;bottom:14px;right:14px;width:268px;max-height:calc(100vh - 80px);overflow-y:auto;background:${c.panel};backdrop-filter:blur(24px);border-radius:14px;border:1px solid ${c.border};padding:16px;z-index:300;box-shadow:0 24px 80px rgba(0,0,0,0.3)">
+    <button id="closeDetail" style="position:absolute;top:10px;right:10px;background:none;border:none;cursor:pointer;color:${c.muted};display:flex">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <button id="editPerson" style="position:absolute;top:10px;right:32px;background:none;border:none;cursor:pointer;color:#6366f1;display:flex">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+    </button>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      ${avatarSVG(p,46)}
+      <div><div style="font-size:14px;font-weight:800;color:${c.text};line-height:1.25">${esc(p.name)}</div><div style="font-size:12px;color:${c.sub}">${esc(p.surname)}</div></div>
+    </div>
+    ${dateStr?`<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;color:${c.sub};font-size:11px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${c.muted}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(dateStr)}</div>`:''}
+    ${locStr?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;color:${c.sub};font-size:11px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${c.muted}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(locStr)}</div>`:''}
+    ${p.bio?`<div style="font-size:11px;color:${c.sub};margin-top:6px;line-height:1.5;padding:6px 8px;background:${c.inp};border-radius:6px">${esc(p.bio)}</div>`:''}
+    ${secHtml}
+  </div>`;
+  document.getElementById('closeDetail').addEventListener('click',()=>{S.selId=null;renderDetailPanel();renderCards();updateLines();});
+  document.getElementById('editPerson').addEventListener('click',()=>openEdit(p));
+  dp.querySelectorAll('.rel-link').forEach(el=>{
+    el.addEventListener('click',()=>{S.selId=el.dataset.id;renderCards();updateLines();renderDetailPanel();});
+  });
+}
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+function renderToast(){
+  const el=document.getElementById('toast-el');if(!el)return;
+  if(S.toast){el.textContent=S.toast;el.style.display='block';}
+  else{el.style.display='none';}
+}
+
+// ═══════════════════════════════════════
+//  EDIT MODAL
+// ═══════════════════════════════════════
+function openEdit(person){
+  if(person){
+    S.ef={...person};
+    S.ePar=[...(person.parents||[])];
+    S.eSp=(person.spouses||[]).map(s=>s.id);
+    S.eCh=Object.values(S.persons).filter(x=>(x.parents||[]).includes(person.id)).map(x=>x.id);
+  }else{
+    const id='p'+Date.now();
+    S.ef={id,name:'',surname:'',birthDate:'',death:'',city:'',country:'',bio:'',gender:'male',parents:[],spouses:[]};
+    S.ePar=[];S.eSp=[];S.eCh=[];
+  }
+  S.editModal=person?person.id:'new';
+  S.pickerOpen=null;S.pickerQ='';
+  renderEditModal();
+}
+
+function renderEditModal(){
+  const m=document.getElementById('modals');if(!m)return;
+  if(!S.editModal){m.innerHTML='';return;}
+  const c=C();
+  const ef=S.ef;
+  const IS=`width:100%;box-sizing:border-box;padding:7px 10px;border-radius:8px;border:1px solid ${c.border};background:${c.inp};color:${c.text};font-size:12px;outline:none`;
+  const genders=[['male','Мужской','#6366f1'],['female','Женский','#ec4899'],['unknown','Неизвестно','#0ea5e9']];
+  const selPar=S.ePar.map(id=>S.persons[id]).filter(Boolean);
+  const selSp=S.eSp.map(id=>S.persons[id]).filter(Boolean);
+  const selCh=S.eCh.map(id=>S.persons[id]).filter(Boolean);
+
+  function chipRow(items,color,type){
+    if(!items.length)return'';
+    return items.map(p=>`<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 6px 3px 4px;border-radius:20px;background:${color}18;border:1px solid ${color}40;font-size:10.5px;color:${color};margin:2px">${avatarSVG(p,16)}<span>${esc(p.name)} ${esc(p.surname)}</span><span class="rm-rel" data-type="${type}" data-id="${p.id}" style="cursor:pointer;margin-left:2px">×</span></div>`).join('');
+  }
+
+  function pickerSection(type,label,color,items,max){
+    const isOpen=S.pickerOpen===type;
+    const q=isOpen?S.pickerQ:'';
+    const exclude=[ef.id,...(type==='parents'?S.eCh:type==='spouses'?[]:[...S.ePar])];
+    const filtered=Object.values(S.persons).filter(p=>!exclude.includes(p.id)&&(p.name+' '+p.surname).toLowerCase().includes(q.toLowerCase())).slice(0,30);
+    return`<div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <label style="font-size:11px;color:${c.sub};font-weight:600">${esc(label)}</label>
+        <button class="toggle-picker" data-type="${type}" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid ${isOpen?color:c.border};background:${isOpen?color+'18':'transparent'};color:${isOpen?color:c.muted};cursor:pointer">${isOpen?'Скрыть':'+ Добавить'}</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:2px;min-height:4px">${chipRow(items,color,type)}</div>
+      ${isOpen?`<div style="border:1px solid ${c.border};border-radius:10px;overflow:hidden;margin-top:4px">
+        <div style="position:relative;padding:5px 8px;border-bottom:1px solid ${c.border}">
+          <input id="pickerQ" value="${esc(q)}" placeholder="Поиск…" style="width:100%;box-sizing:border-box;padding:3px 3px 3px 20px;border:none;background:transparent;color:${c.text};font-size:11px;outline:none"/>
+        </div>
+        <div style="max-height:130px;overflow-y:auto">${filtered.length===0?`<div style="padding:8px;text-align:center;font-size:11px;color:${c.muted}">Не найдено</div>`:filtered.map(p=>{
+          const isSel=(type==='parents'?S.ePar:type==='spouses'?S.eSp:S.eCh).includes(p.id);
+          const isDis=!isSel&&max&&(type==='parents'?S.ePar:type==='spouses'?S.eSp:S.eCh).length>=max;
+          return`<div class="picker-item" data-type="${type}" data-id="${p.id}" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:${isDis?'not-allowed':'pointer'};opacity:${isDis?.4:1};background:${isSel?color+'18':'transparent'}">${avatarSVG(p,20)}<span style="font-size:11px;flex:1;color:${c.text}">${esc(p.name)} ${esc(p.surname)}</span>${isSel?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`:''}</div>`;
+        }).join('')}</div>
+      </div>`:''}
+    </div>`;
+  }
+
+  m.innerHTML=`<div class="modal-backdrop" id="edit-backdrop">
+    <div class="fade" style="width:100%;max-width:420px;max-height:90vh;overflow-y:auto;background:${c.modal};border-radius:16px;padding:20px;border:1px solid ${c.border};box-shadow:0 30px 100px rgba(0,0,0,0.5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="color:${c.text};font-size:15px;margin:0;font-weight:800">${S.editModal==='new'?'Добавить человека':'Редактировать'}</h2>
+        <button id="closeEdit" style="background:none;border:none;cursor:pointer;color:${c.muted};display:flex">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:${c.sub};display:block;margin-bottom:4px;font-weight:600">Пол</label>
+        <div style="display:flex;gap:6px">
+          ${genders.map(([v,l,col])=>`<button class="gender-btn" data-val="${v}" data-col="${col}" style="flex:1;padding:6px 2px;border-radius:8px;font-size:10.5px;font-weight:600;border:1px solid ${ef.gender===v?col:c.border};background:${ef.gender===v?col+'22':'transparent'};color:${ef.gender===v?col:c.sub};cursor:pointer">${l}</button>`).join('')}
+        </div>
+      </div>
+      ${[['name','Имя'],['surname','Фамилия'],['birthDate','Дата рождения (ДД.ММ.ГГГГ)'],['death','Год смерти'],['city','Город'],['country','Страна']].map(([k,l])=>`<div style="margin-bottom:9px"><label style="font-size:11px;color:${c.sub};display:block;margin-bottom:3px;font-weight:600">${l}</label><input class="ef-inp" data-key="${k}" value="${esc(ef[k]||'')}" style="${IS}"/></div>`).join('')}
+      <div style="margin-bottom:12px"><label style="font-size:11px;color:${c.sub};display:block;margin-bottom:3px;font-weight:600">Биография</label><textarea class="ef-inp" data-key="bio" rows="2" style="${IS};resize:vertical">${esc(ef.bio||'')}</textarea></div>
+      <div style="border-top:1px solid ${c.border};padding-top:12px">
+        ${pickerSection('parents','Родители (макс. 2)','#6366f1',selPar,2)}
+      </div>
+      <div style="border-top:1px solid ${c.border};padding-top:12px">
+        ${pickerSection('spouses','Супруги','#f43f5e',selSp,null)}
+      </div>
+      <div style="border-top:1px solid ${c.border};padding-top:12px;margin-bottom:14px">
+        ${pickerSection('children','Дети','#10b981',selCh,null)}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="saveEdit" style="flex:1;padding:10px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:13px;font-weight:700">Сохранить</button>
+        ${S.editModal!=='new'?`<button id="delPerson" style="padding:10px 14px;border-radius:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;font-size:12px;cursor:pointer">Удалить</button>`:''}
+      </div>
+    </div>
+  </div>`;
+
+  // Events
+  document.getElementById('closeEdit').addEventListener('click',()=>{S.editModal=null;m.innerHTML='';});
+  document.getElementById('edit-backdrop').addEventListener('click',e=>{if(e.target.id==='edit-backdrop'){S.editModal=null;m.innerHTML='';}});
+  document.querySelectorAll('.ef-inp').forEach(el=>{
+    el.addEventListener('input',e=>{S.ef={...S.ef,[el.dataset.key]:e.target.value};});
+  });
+  document.querySelectorAll('.gender-btn').forEach(el=>{
+    el.addEventListener('click',()=>{S.ef={...S.ef,gender:el.dataset.val};renderEditModal();});
+  });
+  document.querySelectorAll('.toggle-picker').forEach(el=>{
+    el.addEventListener('click',()=>{
+      S.pickerOpen=S.pickerOpen===el.dataset.type?null:el.dataset.type;
+      S.pickerQ='';renderEditModal();
+      if(S.pickerOpen){setTimeout(()=>{const i=document.getElementById('pickerQ');if(i)i.focus();},50);}
+    });
+  });
+  const pq=document.getElementById('pickerQ');
+  if(pq){pq.addEventListener('input',e=>{S.pickerQ=e.target.value;renderEditModal();});}
+  document.querySelectorAll('.picker-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const{type,id}=el.dataset;
+      const arr=type==='parents'?S.ePar:type==='spouses'?S.eSp:S.eCh;
+      const maxOk=type!=='parents'||arr.length<2;
+      if(arr.includes(id)){
+        const newArr=arr.filter(x=>x!==id);
+        if(type==='parents')S.ePar=newArr;else if(type==='spouses')S.eSp=newArr;else S.eCh=newArr;
+      }else if(maxOk){
+        arr.push(id);
+      }
+      renderEditModal();
+    });
+  });
+  document.querySelectorAll('.rm-rel').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const{type,id}=el.dataset;
+      if(type==='parents')S.ePar=S.ePar.filter(x=>x!==id);
+      else if(type==='spouses')S.eSp=S.eSp.filter(x=>x!==id);
+      else S.eCh=S.eCh.filter(x=>x!==id);
+      renderEditModal();
+    });
+  });
+  document.getElementById('saveEdit').addEventListener('click',doSave);
+  const delBtn=document.getElementById('delPerson');
+  if(delBtn)delBtn.addEventListener('click',()=>{if(confirm('Удалить?'))doDelPerson(S.ef.id);});
+}
+
+function doSave(){
+  const id=S.ef.id;
+  const updated={...S.ef,parents:[...S.ePar],spouses:S.eSp.map(sid=>({id:sid}))};
+  const newPersons={...S.persons,[id]:updated};
+  S.eCh.forEach(cid=>{if(newPersons[cid]&&!newPersons[cid].parents.includes(id))newPersons[cid]={...newPersons[cid],parents:[...newPersons[cid].parents,id]};});
+  Object.values(S.persons).filter(p=>(p.parents||[]).includes(id)&&p.id!==id).forEach(c=>{if(!S.eCh.includes(c.id)&&newPersons[c.id])newPersons[c.id]={...newPersons[c.id],parents:newPersons[c.id].parents.filter(pid=>pid!==id)};});
+  S.eSp.forEach(sid=>{if(newPersons[sid]&&!(newPersons[sid].spouses||[]).some(s=>s.id===id))newPersons[sid]={...newPersons[sid],spouses:[...(newPersons[sid].spouses||[]),{id}]};});
+  (S.persons[id]?.spouses||[]).map(s=>s.id).forEach(sid=>{if(!S.eSp.includes(sid)&&newPersons[sid])newPersons[sid]={...newPersons[sid],spouses:(newPersons[sid].spouses||[]).filter(s=>s.id!==id)};});
+  S.persons=newPersons;
+  if(!S.pos[id])S.pos={...S.pos,[id]:{x:300,y:300}};
+  S.editModal=null;
+  document.getElementById('modals').innerHTML='';
+  renderCanvasContent();
+  renderDetailPanel();
+  schedSave();
+}
+
+function doDelPerson(id){
+  const{[id]:_,...rest}=S.persons;S.persons=rest;
+  const{[id]:__,...posRest}=S.pos;S.pos=posRest;
+  S.selId=null;S.editModal=null;
+  document.getElementById('modals').innerHTML='';
+  renderCanvasContent();
+  renderDetailPanel();
+  schedSave();
+}
+
+// ═══════════════════════════════════════
+//  IMPORT MODAL
+// ═══════════════════════════════════════
+async function openImport(){
+  S.importModal=true;S.importSel=null;S.importQ='';S.importBusy=true;
+  renderImportModal();
+  const cache={};
+  for(const t of S.treesIndex.filter(t=>t.id!==S.treeId)){
+    try{const r=db.get('td:'+t.id);if(r)cache[t.id]=JSON.parse(r);}catch(e){}
+  }
+  S.treeCache=cache;S.importBusy=false;
+  renderImportModal();
+}
+function renderImportModal(){
+  const m=document.getElementById('modals');if(!m)return;
+  if(!S.importModal){if(!S.editModal)m.innerHTML='';return;}
+  const c=C();
+  const q=S.importQ.toLowerCase();
+  const res=q?Object.entries(S.treeCache).flatMap(([tid,data])=>{
+    const title=(S.treesIndex.find(t=>t.id===tid)||{}).title||tid;
+    return Object.values(data.persons||{}).filter(p=>(p.name+' '+p.surname).toLowerCase().includes(q)).map(p=>({tid,title,person:p}));
+  }).slice(0,25):[];
+  const IS=`width:100%;box-sizing:border-box;padding:7px 10px;border-radius:8px;border:1px solid ${c.border};background:${c.inp};color:${c.text};font-size:12px;outline:none`;
+  m.innerHTML=`<div class="modal-backdrop" id="imp-back">
+    <div class="fade" style="width:100%;max-width:400px;max-height:80vh;overflow-y:auto;background:${c.modal};border-radius:16px;padding:20px;border:1px solid ${c.border};box-shadow:0 30px 100px rgba(0,0,0,0.5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h2 style="color:${c.text};font-size:15px;margin:0;font-weight:800">Найти общего родственника</h2>
+        <button id="closeImp" style="background:none;border:none;cursor:pointer;color:${c.muted};display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <p style="font-size:12px;color:${c.sub};margin:0 0 12px;line-height:1.5">Поиск по всем вашим деревьям. Импортируйте ветку и свяжите через редактирование.</p>
+      ${S.importSel?`
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:${c.inp};border-radius:10px;margin-bottom:12px">${avatarSVG(S.importSel.person,36)}<div><div style="font-size:13px;font-weight:700;color:${c.text}">${esc(S.importSel.person.name)} ${esc(S.importSel.person.surname)}</div><div style="font-size:11px;color:${c.sub}">Дерево «${esc(S.importSel.title)}»</div></div></div>
+        <p style="font-size:12px;color:${c.sub};margin-bottom:14px;line-height:1.5">Будет импортировано ${Object.keys((S.treeCache[S.importSel.tid]||{}).persons||{}).length} чел.</p>
+        <div style="display:flex;gap:8px">
+          <button id="doImport" style="flex:1;padding:10px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:13px;font-weight:700">Импортировать ветку</button>
+          <button id="backImp" style="padding:10px 14px;border-radius:10px;background:transparent;border:1px solid ${c.border};color:${c.sub};font-size:12px">Назад</button>
+        </div>
+      `:`
+        <input id="impQ" value="${esc(S.importQ)}" placeholder="Имя или фамилия…" style="${IS};margin-bottom:10px"/>
+        ${S.importBusy?`<div style="text-align:center;font-size:12px;color:${c.muted};padding:14px">Загрузка…</div>`:''}
+        ${!S.importBusy&&S.treesIndex.length<=1?`<div style="text-align:center;font-size:12px;color:${c.muted};padding:14px">Других деревьев нет</div>`:''}
+        ${!S.importBusy&&S.importQ&&!res.length?`<div style="text-align:center;font-size:12px;color:${c.muted};padding:14px">Не найдено</div>`:''}
+        ${res.map(r=>`<div class="imp-item" data-idx="${res.indexOf(r)}" style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px;cursor:pointer">${avatarSVG(r.person,28)}<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;color:${c.text}">${esc(r.person.name)} ${esc(r.person.surname)}</div><div style="font-size:10.5px;color:${c.muted}">Дерево «${esc(r.title)}»</div></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c.muted}" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>`).join('')}
+      `}
+    </div>
+  </div>`;
+  // Store res for access in click handlers
+  window._impRes=res;
+  document.getElementById('closeImp').addEventListener('click',()=>{S.importModal=false;m.innerHTML='';});
+  document.getElementById('imp-back').addEventListener('click',e=>{if(e.target.id==='imp-back'){S.importModal=false;m.innerHTML='';}});
+  const qEl=document.getElementById('impQ');
+  if(qEl){qEl.addEventListener('input',e=>{S.importQ=e.target.value;renderImportModal();});qEl.focus();}
+  document.querySelectorAll('.imp-item').forEach(el=>{
+    el.addEventListener('click',()=>{S.importSel=window._impRes[+el.dataset.idx];renderImportModal();});
+  });
+  const doImpBtn=document.getElementById('doImport');
+  if(doImpBtn)doImpBtn.addEventListener('click',()=>{
+    const{tid,person,title}=S.importSel;
+    const data=S.treeCache[tid];if(!data)return;
+    const idMap={};Object.keys(data.persons||{}).forEach(oid=>{idMap[oid]='imp_'+tid+'_'+oid;});
+    const rp={};
+    Object.values(data.persons||{}).forEach(p=>{rp[idMap[p.id]]={...p,id:idMap[p.id],parents:(p.parents||[]).map(pid=>idMap[pid]).filter(Boolean),spouses:(p.spouses||[]).map(s=>({...s,id:idMap[s.id]})).filter(s=>s.id)};});
+    const cv=Object.values(S.pos);const cmx=cv.length?Math.min(...cv.map(p=>p.x)):0;const cmy=cv.length?Math.max(...cv.map(p=>p.y)):0;
+    const sv=Object.values(data.positions||{});const smx=sv.length?Math.min(...sv.map(p=>p.x)):0;const smy=sv.length?Math.min(...sv.map(p=>p.y)):0;
+    const rpos={};Object.entries(data.positions||{}).forEach(([oid,p])=>{if(idMap[oid])rpos[idMap[oid]]={x:p.x+(cmx-smx),y:p.y+(cmy+260-smy)};});
+    S.persons={...S.persons,...rp};S.pos={...S.pos,...rpos};
+    S.selId=idMap[person.id];
+    S.importModal=false;m.innerHTML='';
+    renderCanvasContent();renderDetailPanel();
+    showToast('Ветка «'+title+'» импортирована ('+Object.keys(data.persons||{}).length+' чел.).');
+    schedSave();
+  });
+  const backImpBtn=document.getElementById('backImp');
+  if(backImpBtn)backImpBtn.addEventListener('click',()=>{S.importSel=null;renderImportModal();});
+}
+
+// ═══════════════════════════════════════
+//  PNG EXPORT
+// ═══════════════════════════════════════
+function exportPNG(){
+  const margin=60,sc=2;
+  const all=Object.entries(S.pos).filter(([id])=>S.persons[id]);if(!all.length)return;
+  const xs=all.map(([,p])=>p.x),ys=all.map(([,p])=>p.y);
+  const mnX=Math.min(...xs)-margin,mnY=Math.min(...ys)-margin;
+  const W=Math.max(...xs)+CW+margin-mnX,H=Math.max(...ys)+CH+margin-mnY;
+  const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;
+  const ctx=cv.getContext('2d');ctx.scale(sc,sc);ctx.translate(-mnX,-mnY);
+  ctx.fillStyle=S.dark?'#070b18':'#eef0f5';ctx.fillRect(mnX,mnY,W,H);
+  const{spL,chL}=getLines();
+  spL.forEach(({a,b})=>{const pa=S.pos[a],pb=S.pos[b];if(!pa||!pb)return;ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pa.x+CW/2,pa.y+CH/2);ctx.lineTo(pb.x+CW/2,pb.y+CH/2);ctx.stroke();ctx.restore();});
+  chL.forEach(({child,parents})=>{const cp=S.pos[child];if(!cp)return;let sx,sy;if(parents.length===1){const pp=S.pos[parents[0]];if(!pp)return;sx=pp.x+CW/2;sy=pp.y+CH;}else{const p1=S.pos[parents[0]],p2=S.pos[parents[1]];if(!p1||!p2)return;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(sx,sy);ctx.bezierCurveTo(sx,my,ex,my,ex,ey);ctx.stroke();});
+  Object.values(S.persons).forEach(p=>{const pp=S.pos[p.id];if(!pp)return;ctx.fillStyle=S.dark?'rgba(18,25,60,0.95)':'rgba(255,255,255,0.95)';ctx.strokeStyle=S.dark?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([]);ctx.beginPath();const r=10;const x=pp.x,y=pp.y,w=CW,h=CH;ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.fill();ctx.stroke();const[c1,c2]=gc(p.gender);const g=ctx.createLinearGradient(pp.x+10,pp.y+10,pp.x+36,pp.y+36);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.beginPath();ctx.arc(pp.x+22,pp.y+28,13,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText((p.name||'?')[0],pp.x+22,pp.y+32);ctx.textAlign='left';ctx.fillStyle=S.dark?'#dde2f0':'#1a2035';ctx.font='bold 10px sans-serif';ctx.fillText((p.name||'').slice(0,16),pp.x+40,pp.y+22);ctx.fillStyle=S.dark?'#8b95b0':'#5a6380';ctx.font='9px sans-serif';ctx.fillText((p.surname||'').slice(0,16),pp.x+40,pp.y+33);const age=calcAge(p.birthDate,p.death);const d=[p.birthDate?'р. '+p.birthDate:'',p.death?'† '+p.death:'',age!=null?'('+age+')':''].filter(Boolean).join(' · ');ctx.fillStyle=S.dark?'#4a5270':'#9aa0b8';ctx.font='8.5px sans-serif';if(d)ctx.fillText(d.slice(0,26),pp.x+10,pp.y+58);const loc=[p.city,p.country].filter(Boolean).join(', ');if(loc)ctx.fillText(loc.slice(0,24),pp.x+10,pp.y+70);});
+  cv.toBlob(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='family-tree.png';a.click();URL.revokeObjectURL(url);},'image/png');
+}
+
+// ═══════════════════════════════════════
+//  START
+// ═══════════════════════════════════════
+init();
+</script>
+</body>
+</html>
