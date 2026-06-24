@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Семейное Древо</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:'Segoe UI',system-ui,sans-serif}
+body{overflow:hidden}
+input,textarea,button{font-family:inherit}
+button{cursor:pointer}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(128,128,128,0.25);border-radius:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.spin{animation:spin .75s linear infinite}
+.up{animation:up .2s ease}
+.pop{animation:pop .18s ease}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:700;padding:14px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+// ─────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────
+const CW=162,CH=96;
+const GENDER_GRAD={male:['#6366f1','#818cf8'],female:['#ec4899','#f472b6'],unknown:['#0ea5e9','#38bdf8']};
+const gc=g=>GENDER_GRAD[g]||GENDER_GRAD.unknown;
+
+// ─────────────────────────────────────────
+//  INITIAL DATA (Наншанло family)
+// ─────────────────────────────────────────
+const INIT_P={
+  p1:{id:'p1',surname:'Наншанло',name:'Абдулла Паншарович',birthDate:'15.03.1930',death:'2021',city:'Пржевальск',country:'СССР',bio:'',gender:'male',parents:[],spouses:[{id:'p2'}]},
+  p2:{id:'p2',surname:'Юсупова',name:'Нана',birthDate:'22.07.1933',death:'1987',city:'Пржевальск',country:'СССР',bio:'',gender:'female',parents:[],spouses:[{id:'p1'}]},
+  p3:{id:'p3',surname:'Наншанло',name:'Анвар Абдулаевич',birthDate:'28.09.1962',death:'',city:'Пржевальск',country:'СССР',bio:'',gender:'male',parents:['p1','p2'],spouses:[{id:'p4'}]},
+  p4:{id:'p4',surname:'Машанло',name:'Зухра Дыдызовна',birthDate:'23.01.1964',death:'',city:'Токмок',country:'СССР',bio:'',gender:'female',parents:[],spouses:[{id:'p3'}]},
+  p5:{id:'p5',surname:'Наншанло',name:'Алишер Анварович',birthDate:'28.09.1986',death:'',city:'Пржевальск',country:'СССР',bio:'',gender:'male',parents:['p3','p4'],spouses:[{id:'p1778075489361'}]},
+  p6:{id:'p6',surname:'Наншанло',name:'Зайнура Анваровна',birthDate:'29.03.1984',death:'',city:'Пржевальск',country:'СССР',bio:'',gender:'female',parents:['p3','p4'],spouses:[{id:'p1778075295202'}]},
+  p1778075295202:{id:'p1778075295202',surname:'Мамиев',name:'Ринат',birthDate:'24.05.1980',death:'',city:'Пржевальск',country:'СССР',bio:'',gender:'male',parents:[],spouses:[{id:'p6'}]},
+  p1778075489361:{id:'p1778075489361',surname:'Ваншу',name:'Рахия Гайсыровна',birthDate:'07.12.1987',death:'',city:'Токмок',country:'СССР',bio:'',gender:'female',parents:['p1778159628424','p1778159686969'],spouses:[{id:'p5'}]},
+  p1778075538942:{id:'p1778075538942',surname:'Мамиева',name:'Алина Ринатовна',birthDate:'',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p6','p1778075295202'],spouses:[{id:'p1778075960975'}]},
+  p1778075629720:{id:'p1778075629720',surname:'Мамиева',name:'Аяна Ринатовна',birthDate:'',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p6','p1778075295202'],spouses:[]},
+  p1778075717998:{id:'p1778075717998',surname:'Мамиева',name:'Малика Ринатовна',birthDate:'',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p6','p1778075295202'],spouses:[]},
+  p1778075785882:{id:'p1778075785882',surname:'Мамиева',name:'Хамида Ринатовна',birthDate:'',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p6','p1778075295202'],spouses:[]},
+  p1778075884864:{id:'p1778075884864',surname:'Мамиева',name:'Фарида Ринатовна',birthDate:'',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p6','p1778075295202'],spouses:[]},
+  p1778075960975:{id:'p1778075960975',surname:'Макеев',name:'Алишер',birthDate:'',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'male',parents:[],spouses:[{id:'p1778075538942'}]},
+  p1778075999966:{id:'p1778075999966',surname:'Макеева',name:'Фатима Алишеровна',birthDate:'',death:'',city:'',country:'',bio:'',gender:'female',parents:['p1778075538942','p1778075960975'],spouses:[]},
+  p1778076064447:{id:'p1778076064447',surname:'Анваров',name:'Ислам Алишерович',birthDate:'20.12.2011',death:'',city:'Бишкек',country:'Кыргызстан',bio:'',gender:'unknown',parents:['p5','p1778075489361'],spouses:[]},
+  p1778076129834:{id:'p1778076129834',surname:'Анваров',name:'Ахмад Алишерович',birthDate:'13.06.2014',death:'',city:'Бишкек',country:'Кыргызстан',bio:'',gender:'male',parents:['p5','p1778075489361'],spouses:[]},
+  p1778076844156:{id:'p1778076844156',surname:'Наншанло',name:'Аскар Анварович',birthDate:'19.02.1989',death:'',city:'Пржевальск',country:'СССР',bio:'',gender:'male',parents:['p4','p3'],spouses:[{id:'p1778080146638'}]},
+  p1778080146638:{id:'p1778080146638',surname:'Машанло',name:'Салима Ильясовна',birthDate:'23.08.1991',death:'',city:'',country:'Украина',bio:'',gender:'female',parents:[],spouses:[{id:'p1778076844156'}]},
+  p1778080219001:{id:'p1778080219001',surname:'Наншанло',name:'Азиля Аскаровна',birthDate:'10.08.2010',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p1778076844156','p1778080146638'],spouses:[]},
+  p1778080274977:{id:'p1778080274977',surname:'Наншанло',name:'Шахноза Аскаровна',birthDate:'07.10.2012',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'female',parents:['p1778080146638','p1778076844156'],spouses:[]},
+  p1778080350080:{id:'p1778080350080',surname:'Наншанло',name:'Абду Маджит Аскарович',birthDate:'28.12.2014',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'male',parents:['p1778076844156','p1778080146638'],spouses:[]},
+  p1778080401488:{id:'p1778080401488',surname:'Наншанло',name:'Мухаммад Аскарович',birthDate:'20.12.2021',death:'',city:'Каракол',country:'Кыргызстан',bio:'',gender:'male',parents:['p1778076844156','p1778080146638'],spouses:[]},
+  p1778159628424:{id:'p1778159628424',surname:'Ваншу',name:'Гайсыр Омарович',birthDate:'01.01.1961',death:'',city:'Токмок',country:'СССР',bio:'',gender:'male',parents:[],spouses:[{id:'p1778159686969'}]},
+  p1778159686969:{id:'p1778159686969',surname:'Исмарова',name:'Бинлар Исхаровна',birthDate:'03.01.1967',death:'',city:'Масанчи',country:'СССР',bio:'',gender:'female',parents:[],spouses:[{id:'p1778159628424'}]},
+  p1778159777353:{id:'p1778159777353',surname:'Ваншу',name:'Айша Гайсыровна',birthDate:'21.01.1986',death:'',city:'Токмок',country:'СССР',bio:'',gender:'female',parents:['p1778159628424','p1778159686969'],spouses:[{id:'p1778160021679'}]},
+  p1778159831228:{id:'p1778159831228',surname:'Ваншу',name:'Сания Гайсыровна',birthDate:'31.07.1996',death:'',city:'Токмок',country:'Кыргызстан',bio:'',gender:'female',parents:['p1778159686969','p1778159628424'],spouses:[]},
+  p1778159884833:{id:'p1778159884833',surname:'Ваншу',name:'Асия Гайсыровна',birthDate:'09.12.2000',death:'',city:'Токмок',country:'Кыргызстан',bio:'',gender:'female',parents:['p1778159628424','p1778159686969'],spouses:[]},
+  p1778160021679:{id:'p1778160021679',surname:'',name:'Рашид',birthDate:'26.09.1980',death:'2025',city:'Сортобе',country:'СССР',bio:'',gender:'male',parents:[],spouses:[{id:'p1778159777353'}]},
+  p1778160107436:{id:'p1778160107436',surname:'',name:'Лейла Рашидовна',birthDate:'01.01.2009',death:'',city:'Бишкек',country:'Кыргызстан',bio:'',gender:'unknown',parents:['p1778160021679','p1778159777353'],spouses:[]},
+  p1778160154209:{id:'p1778160154209',surname:'',name:'Салия Рашидовна',birthDate:'29.09.2012',death:'',city:'Бишкек',country:'Кыргызстан',bio:'',gender:'female',parents:['p1778160021679','p1778159777353'],spouses:[]},
+  p1778166980636:{id:'p1778166980636',surname:'',name:'Лайсян Рашидовна',birthDate:'',death:'',city:'Сортобе',country:'Казахстан',bio:'',gender:'female',parents:['p1778160021679','p1778159777353'],spouses:[]},
+};
+const INIT_POS={
+  p1:{x:58,y:18},p2:{x:220,y:17},p3:{x:60,y:260},p4:{x:222,y:263},
+  p5:{x:88,y:453},p6:{x:-280,y:449},
+  p1778075295202:{x:-440,y:454},p1778075489361:{x:250,y:454},
+  p1778075538942:{x:-650,y:660},p1778075629720:{x:-510,y:660},
+  p1778075717998:{x:-375,y:660},p1778075785882:{x:-240,y:660},
+  p1778075884864:{x:-108,y:660},p1778075960975:{x:-790,y:660},
+  p1778075999966:{x:-720,y:840},p1778076064447:{x:84,y:662},
+  p1778076129834:{x:252,y:665},p1778076844156:{x:545,y:458},
+  p1778080146638:{x:695,y:459},p1778080219001:{x:416,y:664},
+  p1778080274977:{x:554,y:664},p1778080350080:{x:706,y:661},
+  p1778080401488:{x:860,y:661},p1778159628424:{x:1100,y:254},
+  p1778159686969:{x:1255,y:252},p1778159777353:{x:1178,y:454},
+  p1778159831228:{x:1330,y:454},p1778159884833:{x:1482,y:454},
+  p1778160021679:{x:1046,y:457},p1778160107436:{x:1034,y:660},
+  p1778160154209:{x:1172,y:660},p1778166980636:{x:1302,y:662},
+};
+
+// ─────────────────────────────────────────
+//  STORAGE
+// ─────────────────────────────────────────
+const db={
+  get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+
+// ─────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────
+function calcAge(b,d){
+  if(!b)return null;
+  const p=b.split('.');if(p.length<3)return null;
+  const dd=+p[0],mm=+p[1],yy=+p[2];if(!yy||isNaN(yy))return null;
+  if(d){const dy=+d;if(!isNaN(dy))return dy-yy>=0?dy-yy:null;}
+  const now=new Date();let a=now.getFullYear()-yy;
+  if(now.getMonth()<mm-1||(now.getMonth()===mm-1&&now.getDate()<dd))a--;
+  return a>=0?a:null;
+}
+function ageLabel(a){
+  if(a==null)return'';
+  const m10=a%10,m100=a%100;
+  if(m100>=11&&m100<=14)return a+' лет';
+  if(m10===1)return a+' год';
+  if(m10>=2&&m10<=4)return a+' года';
+  return a+' лет';
+}
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function avatarSVG(p,sz){
+  const[c1,c2]=gc(p.gender),l=esc((p.name||'?')[0]);
+  const uid='g'+p.id.replace(/[^a-z0-9]/gi,'');
+  return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;display:block"><defs><linearGradient id="${uid}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><circle cx="${sz/2}" cy="${sz/2}" r="${sz/2}" fill="url(#${uid})"/><text x="${sz/2}" y="${sz/2+sz*0.14}" text-anchor="middle" fill="#fff" font-size="${Math.round(sz*0.38)}" font-weight="800" font-family="system-ui,sans-serif">${l}</text></svg>`;
+}
+function gbd(items,mw,fw){
+  const m=items.filter(p=>p.gender==='male').length;
+  const f=items.filter(p=>p.gender==='female').length;
+  const o=items.length-m-f;
+  return[m?m+' '+mw:'',f?f+' '+fw:'',o?o+' др.':''].filter(Boolean).join(' · ');
+}
+
+// ─────────────────────────────────────────
+//  GENERATION CALCULATOR (up to 7 gens)
+// ─────────────────────────────────────────
+function computeGenerations(persons){
+  // BFS from roots (no parents). Gen 1 = oldest.
+  const gen={};
+  const allIds=Object.keys(persons);
+  // Find people with no parents in the set
+  const roots=allIds.filter(id=>!(persons[id].parents||[]).some(pid=>persons[pid]));
+  const queue=[...roots];
+  roots.forEach(id=>{gen[id]=1;});
+  // BFS downward
+  const visited=new Set(roots);
+  while(queue.length){
+    const id=queue.shift();
+    const g=gen[id]||1;
+    // children
+    allIds.forEach(cid=>{
+      if((persons[cid].parents||[]).includes(id)){
+        const ng=g+1;
+        if(!gen[cid]||gen[cid]<ng)gen[cid]=ng;
+        if(!visited.has(cid)){visited.add(cid);queue.push(cid);}
+      }
+    });
+    // spouses inherit same gen
+    (persons[id].spouses||[]).forEach(s=>{
+      if(!gen[s.id]&&persons[s.id]){gen[s.id]=g;if(!visited.has(s.id)){visited.add(s.id);queue.push(s.id);}}
+    });
+  }
+  // assign remaining (orphans or disconnected)
+  allIds.forEach(id=>{if(!gen[id])gen[id]=1;});
+  return gen;
+}
+
+function getGenLabel(n){
+  const labels=['','I поколение','II поколение','III поколение','IV поколение','V поколение','VI поколение','VII поколение'];
+  return labels[n]||('Поколение '+n);
+}
+
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+let S={
+  stage:'loading',ident:'',nameIn:'',
+  treesIndex:[],treeId:null,
+  dark:true,persons:{},pos:{},loaded:false,
+  selId:null,search:'',tr:{x:390,y:90,k:0.68},
+  editModal:null,ef:{},ePar:[],eSp:[],eCh:[],pickerOpen:null,pickerQ:'',
+  toast:null,toastTimer:null,
+  importModal:false,importQ:'',importBusy:false,importSel:null,treeCache:{},
+  newTreeModal:false,newTreeTitle:'',
+  viewMode:'canvas', // 'canvas' | 'gen'
+};
+let _saveTimer=null,_pan=null,_drag=null,_touch=null;
+
+// ─────────────────────────────────────────
+//  AUTOSAVE
+// ─────────────────────────────────────────
+function schedSave(){
+  if(!S.loaded||!S.treeId||S.stage!=='tree')return;
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(()=>{
+    db.set('td:'+S.treeId,JSON.stringify({persons:S.persons,positions:S.pos}));
+    S.treesIndex=S.treesIndex.map(t=>t.id===S.treeId?{...t,n:Object.keys(S.persons).length}:t);
+    db.set('tidx',JSON.stringify(S.treesIndex));
+  },600);
+}
+
+// ─────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────
+async function boot(){
+  render();
+  const name=db.get('iname');
+  let idx=null;try{const r=db.get('tidx');if(r)idx=JSON.parse(r);}catch(e){}
+  if(!idx){
+    idx=[{id:'default',title:'Наша семья',owner:'Семья',ts:Date.now(),n:Object.keys(INIT_P).length}];
+    db.set('tidx',JSON.stringify(idx));
+    db.set('td:default',JSON.stringify({persons:INIT_P,positions:INIT_POS}));
+  }
+  S.treesIndex=idx;
+  if(!name){S.stage='identity';render();return;}
+  S.ident=name;
+  let lastId=db.get('last-tid');
+  if(lastId&&idx.some(t=>t.id===lastId))await loadTree(lastId);
+  else{S.stage='hub';render();}
+}
+
+async function loadTree(id){
+  S.loaded=false;S.stage='tree';render();
+  let data=null;try{const r=db.get('td:'+id);if(r)data=JSON.parse(r);}catch(e){}
+  S.persons=data?.persons||{};S.pos=data?.positions||{};
+  S.treeId=id;S.selId=null;S.editModal=null;S.search='';S.tr={x:390,y:90,k:0.68};
+  S.loaded=true;db.set('last-tid',id);render();
+}
+
+// ─────────────────────────────────────────
+//  THEME COLORS
+// ─────────────────────────────────────────
+function C(){
+  const d=S.dark;
+  return{
+    bg:d?'#06091a':'#eef0f5',
+    hdr:d?'rgba(6,9,26,0.92)':'rgba(238,240,245,0.94)',
+    card:d?'rgba(15,21,52,0.88)':'rgba(255,255,255,0.93)',
+    cardSel:d?'rgba(99,102,241,0.26)':'rgba(99,102,241,0.14)',
+    border:d?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.08)',
+    text:d?'#e8eaf0':'#18202e',
+    sub:d?'#8892b0':'#5a6380',
+    muted:d?'#3d4a70':'#9aa0b8',
+    panel:d?'rgba(8,12,32,0.98)':'rgba(255,255,255,0.99)',
+    modal:d?'#0c1128':'#ffffff',
+    inp:d?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)',
+    ss:d?'rgba(255,255,255,0.14)':'rgba(0,0,0,0.1)',
+    cs:d?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)',
+    hl:'rgba(99,102,241,0.42)',
+    genBg:d?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)',
+    genBorder:d?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)',
+  };
+}
+
+// ─────────────────────────────────────────
+//  INLINE ICONS (SVG strings)
+// ─────────────────────────────────────────
+const ico={
+  search:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>`,
+  sun:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
+  moon:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
+  plus:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  download:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  x:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  edit:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`,
+  zoomin:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+  zoomout:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+  home:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  users:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+  back:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>`,
+  trash:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+  branch:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>`,
+  chevron:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>`,
+  user:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  grid:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  list:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+  pdf:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  grip:`<svg width="12" height="20" viewBox="0 0 12 20" fill="currentColor" opacity=".4"><circle cx="4" cy="4" r="1.5"/><circle cx="8" cy="4" r="1.5"/><circle cx="4" cy="10" r="1.5"/><circle cx="8" cy="10" r="1.5"/><circle cx="4" cy="16" r="1.5"/><circle cx="8" cy="16" r="1.5"/></svg>`,
+  check:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  cal:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  pin:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+};
+
+function btn(cls,icon,label,style=''){
+  return`<button class="${cls}" style="display:flex;align-items:center;gap:5px;${style}">${icon}${label?`<span>${label}</span>`:''}</button>`;
+}
+function iBtn(style=''){
+  return`style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 9px;color:var(--text);font-size:12px;${style}"`;
+}
+
+// ─────────────────────────────────────────
+//  RENDER ROUTER
+// ─────────────────────────────────────────
+function render(){
+  const c=C();
+  document.documentElement.style.setProperty('--bg',c.bg);
+  document.documentElement.style.setProperty('--hdr',c.hdr);
+  document.documentElement.style.setProperty('--card',c.card);
+  document.documentElement.style.setProperty('--border',c.border);
+  document.documentElement.style.setProperty('--text',c.text);
+  document.documentElement.style.setProperty('--sub',c.sub);
+  document.documentElement.style.setProperty('--muted',c.muted);
+  document.documentElement.style.setProperty('--inp',c.inp);
+  document.documentElement.style.setProperty('--panel',c.panel);
+  document.documentElement.style.setProperty('--modal',c.modal);
+  document.body.style.background=c.bg;
+  const app=document.getElementById('app');
+  if(S.stage==='loading')app.innerHTML=loadingHTML();
+  else if(S.stage==='identity')app.innerHTML=identityHTML();
+  else if(S.stage==='hub'){app.innerHTML=hubHTML();bindHub();}
+  else if(S.stage==='tree'){
+    if(!S.loaded)app.innerHTML=loadingHTML();
+    else{app.innerHTML=treeHTML();bindTree();}
+  }
+}
+
+// ─────────────────────────────────────────
+//  LOADING
+// ─────────────────────────────────────────
+function loadingHTML(){
+  return`<div style="width:100vw;height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+    <div class="spin" style="width:36px;height:36px;border-radius:50%;border:3px solid rgba(99,102,241,0.2);border-top-color:#6366f1"></div>
+    <div style="color:var(--muted);font-size:13px">Загрузка…</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────
+//  IDENTITY
+// ─────────────────────────────────────────
+function identityHTML(){
+  return`<div style="width:100vw;height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+    <div class="pop" style="width:100%;max-width:340px;background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,0.35);text-align:center">
+      <div style="width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 8px 24px rgba(99,102,241,0.4)">
+        ${ico.users.replace('14','28').replace('14','28')}
+      </div>
+      <h1 style="font-size:22px;font-weight:800;color:var(--text);margin:0 0 8px;letter-spacing:-.5px">Семейное Древо</h1>
+      <p style="font-size:13px;color:var(--sub);margin:0 0 24px;line-height:1.55">Введите имя, чтобы войти и работать с вашим семейным деревом</p>
+      <input id="nameIn" value="${esc(S.nameIn)}" placeholder="Ваше имя" autocomplete="name"
+        style="width:100%;padding:12px;border-radius:11px;border:1px solid var(--border);background:var(--inp);color:var(--text);font-size:15px;outline:none;text-align:center;margin-bottom:12px;transition:border-color .2s"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor=''"/>
+      <button id="identBtn" style="width:100%;padding:13px;border-radius:11px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14px;font-weight:700;letter-spacing:.2px;box-shadow:0 6px 20px rgba(99,102,241,0.35)">Продолжить →</button>
+    </div>
+  </div>`;
+}
+document.addEventListener('click',e=>{
+  if(e.target.id==='identBtn'||e.target.closest('#identBtn')){
+    const n=(document.getElementById('nameIn')?.value||S.nameIn).trim();
+    if(!n)return;
+    S.ident=n;S.nameIn='';db.set('iname',n);S.stage='hub';render();
+  }
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='nameIn')S.nameIn=e.target.value;
+  if(e.target.id==='searchInp')updateSearch(e.target.value);
+  if(e.target.id==='pickerQ'){S.pickerQ=e.target.value;renderEditModal();}
+  if(e.target.id==='impQ'){S.importQ=e.target.value;renderImportModal();}
+  if(e.target.id==='newTreeInp')S.newTreeTitle=e.target.value;
+  if(e.target.classList.contains('ef-inp'))S.ef={...S.ef,[e.target.dataset.key]:e.target.value};
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(e.target.id==='nameIn'&&S.nameIn.trim()){const n=S.nameIn.trim();S.ident=n;S.nameIn='';db.set('iname',n);S.stage='hub';render();}
+    if(e.target.id==='newTreeInp')doCreateTree();
+  }
+});
+
+// ─────────────────────────────────────────
+//  HUB
+// ─────────────────────────────────────────
+function hubHTML(){
+  const c=C();
+  const sorted=[...S.treesIndex].sort((a,b)=>b.ts-a.ts);
+  return`<div style="width:100vw;height:100vh;background:var(--bg);overflow-y:auto">
+    <div style="position:sticky;top:0;z-index:10;background:var(--hdr);backdrop-filter:blur(22px);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center">${ico.users}</div>
+        <span style="color:var(--text);font-weight:800;font-size:16px">Мои деревья</span>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <button id="darkBtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px;color:${S.dark?'#fbbf24':'#6366f1'};display:flex">${S.dark?ico.sun:ico.moon}</button>
+        <button id="meBtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-size:12px;display:flex;align-items:center;gap:5px">${ico.user} ${esc(S.ident)}</button>
+      </div>
+    </div>
+    <div style="max-width:600px;margin:0 auto;padding:22px 16px">
+      <button id="newTreeBtn" style="width:100%;padding:15px;border-radius:15px;border:1.5px dashed var(--border);background:transparent;color:var(--sub);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px">${ico.plus} Создать новое дерево</button>
+      ${sorted.map(t=>`<div class="tree-card" data-id="${t.id}" style="display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:15px;background:var(--card);border:1px solid var(--border);cursor:pointer;margin-bottom:11px;transition:transform .15s" onmouseenter="this.style.transform='translateY(-1px)'" onmouseleave="this.style.transform=''">
+        <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ico.users}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.title)}</div>
+          <div style="font-size:11px;color:var(--sub)">Автор: ${esc(t.owner)} · ${t.n||0} чел.</div>
+        </div>
+        <button class="del-tree" data-id="${t.id}" style="background:none;border:none;cursor:pointer;padding:7px;color:var(--muted);display:flex">${ico.trash}</button>
+        ${ico.chevron}
+      </div>`).join('')}
+    </div>
+    ${S.newTreeModal?`<div class="modal-bg" id="newTreeBg"><div class="pop" style="width:100%;max-width:350px;background:var(--modal);border-radius:18px;padding:24px;border:1px solid var(--border);box-shadow:0 30px 100px rgba(0,0,0,0.5)">
+      <h2 style="color:var(--text);font-size:15px;margin:0 0 15px;font-weight:800">Новое дерево</h2>
+      <input id="newTreeInp" value="${esc(S.newTreeTitle)}" placeholder="Название, например: Семья Ивановых" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--inp);color:var(--text);font-size:13px;outline:none;margin-bottom:14px"/>
+      <div style="display:flex;gap:8px">
+        <button id="createTreeBtn" style="flex:1;padding:11px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:13px;font-weight:700">Создать</button>
+        <button id="cancelTreeBtn" style="padding:11px 16px;border-radius:11px;background:transparent;border:1px solid var(--border);color:var(--sub);font-size:12px">Отмена</button>
+      </div>
+    </div></div>`:''}
+  </div>`;
+}
+function bindHub(){
+  document.getElementById('darkBtn')?.addEventListener('click',()=>{S.dark=!S.dark;render();});
+  document.getElementById('meBtn')?.addEventListener('click',()=>{S.nameIn=S.ident;S.stage='identity';render();});
+  document.getElementById('newTreeBtn')?.addEventListener('click',()=>{S.newTreeModal=true;render();});
+  document.getElementById('createTreeBtn')?.addEventListener('click',doCreateTree);
+  document.getElementById('cancelTreeBtn')?.addEventListener('click',()=>{S.newTreeModal=false;S.newTreeTitle='';render();});
+  document.getElementById('newTreeBg')?.addEventListener('click',e=>{if(e.target.id==='newTreeBg'){S.newTreeModal=false;S.newTreeTitle='';render();}});
+  document.querySelectorAll('.tree-card').forEach(el=>{
+    el.addEventListener('click',e=>{if(!e.target.closest('.del-tree'))loadTree(el.dataset.id);});
+  });
+  document.querySelectorAll('.del-tree').forEach(el=>{
+    el.addEventListener('click',e=>{e.stopPropagation();if(!confirm('Удалить дерево?'))return;
+      db.del('td:'+el.dataset.id);S.treesIndex=S.treesIndex.filter(t=>t.id!==el.dataset.id);
+      db.set('tidx',JSON.stringify(S.treesIndex));render();});
+  });
+  if(S.newTreeModal)setTimeout(()=>document.getElementById('newTreeInp')?.focus(),50);
+}
+function doCreateTree(){
+  const title=(S.newTreeTitle||'').trim()||'Новое дерево';
+  const id='t'+Date.now(),sid='p'+Date.now();
+  const ip={[sid]:{id:sid,name:S.ident||'',surname:'',birthDate:'',death:'',city:'',country:'',bio:'',gender:'unknown',parents:[],spouses:[]}};
+  const ipp={[sid]:{x:300,y:200}};
+  db.set('td:'+id,JSON.stringify({persons:ip,positions:ipp}));
+  const meta={id,title,owner:S.ident||'',ts:Date.now(),n:1};
+  S.treesIndex=[...S.treesIndex,meta];
+  db.set('tidx',JSON.stringify(S.treesIndex));
+  S.newTreeModal=false;S.newTreeTitle='';loadTree(id);
+}
+
+// ─────────────────────────────────────────
+//  TREE SCREEN HTML SHELL
+// ─────────────────────────────────────────
+function treeHTML(){
+  const c=C();const ctree=S.treesIndex.find(t=>t.id===S.treeId)||{};
+  const isGen=S.viewMode==='gen';
+  return`<div id="tree-root" style="width:100vw;height:100vh;background:var(--bg);overflow:hidden;position:relative">
+    <!-- HEADER -->
+    <div style="position:absolute;top:0;left:0;right:0;z-index:100;background:var(--hdr);backdrop-filter:blur(22px);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <button id="backBtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 9px;color:var(--text);display:flex">${ico.back}</button>
+      <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center">${ico.users.replace(/14/g,'14').replace(/15/g,'14')}</div>
+        <span style="color:var(--text);font-weight:800;font-size:13px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ctree.title||'Дерево')}</span>
+      </div>
+      <div style="flex:1;min-width:100px;max-width:210px;position:relative">
+        ${ico.search.replace('14','12').replace('14','12').replace('stroke="currentColor"','stroke="var(--muted)"')}
+        <input id="searchInp" value="${esc(S.search)}" placeholder="Поиск…" style="width:100%;padding:6px 8px 6px 26px;border-radius:20px;border:1px solid var(--border);background:var(--inp);color:var(--text);font-size:12px;outline:none"/>
+        <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;color:var(--muted)">${ico.search}</span>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;margin-left:auto;flex-wrap:wrap">
+        <button id="zInBtn" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);display:flex">${ico.zoomin}</button>
+        <button id="zOutBtn" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);display:flex">${ico.zoomout}</button>
+        <button id="homeBtn" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);display:flex">${ico.home}</button>
+        <!-- view mode toggle -->
+        <button id="viewToggleBtn" title="${isGen?'Канвас':'По поколениям'}" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:${isGen?'#6366f1':'var(--text)'};display:flex">${isGen?ico.grid:ico.list}</button>
+        <button id="darkBtn2" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:${S.dark?'#fbbf24':'#6366f1'};display:flex">${S.dark?ico.sun:ico.moon}</button>
+        <button id="importBtn" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);display:flex" title="Связать ветки">${ico.branch}</button>
+        <button id="addBtn" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:16px;padding:6px 13px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px">${ico.plus} Добавить</button>
+        <button id="pngBtn" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);display:flex" title="PNG">${ico.download}</button>
+        <button id="pdfTreeBtn" style="background:transparent;border:1px solid #10b981;border-radius:7px;padding:5px 9px;color:#10b981;font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px">${ico.pdf} PDF дерева</button>
+      </div>
+    </div>
+    <!-- CANVAS (hidden in gen mode) -->
+    <div id="canvas" style="position:absolute;inset:0;top:52px;overflow:hidden;touch-action:none;cursor:grab;display:${isGen?'none':'block'}">
+      <svg id="lines-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
+      <div id="cards-layer" style="position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none"></div>
+    </div>
+    <!-- GENERATION VIEW -->
+    <div id="gen-view" style="position:absolute;inset:0;top:52px;overflow-y:auto;overflow-x:hidden;display:${isGen?'block':'none'};padding:16px 12px"></div>
+    <!-- SCALE -->
+    <div id="scale-badge" style="position:absolute;bottom:14px;left:14px;z-index:50;font-size:11px;color:var(--muted);background:var(--hdr);border:1px solid var(--border);border-radius:7px;padding:3px 9px;display:${isGen?'none':'block'}">${Math.round(S.tr.k*100)}%</div>
+    <!-- TOAST -->
+    <div id="toast-el" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:800;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 18px;font-size:12px;color:var(--text);max-width:300px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3)"></div>
+    <!-- DETAIL PANEL -->
+    <div id="detail-panel"></div>
+    <!-- MODALS -->
+    <div id="modals"></div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────
+//  BIND TREE EVENTS
+// ─────────────────────────────────────────
+function bindTree(){
+  document.getElementById('backBtn')?.addEventListener('click',()=>{S.stage='hub';_pan=_drag=null;render();});
+  document.getElementById('zInBtn')?.addEventListener('click',()=>{S.tr={...S.tr,k:Math.min(3,S.tr.k*1.2)};applyTransform();});
+  document.getElementById('zOutBtn')?.addEventListener('click',()=>{S.tr={...S.tr,k:Math.max(0.1,S.tr.k*0.82)};applyTransform();});
+  document.getElementById('homeBtn')?.addEventListener('click',()=>{S.tr={x:390,y:90,k:0.68};applyTransform();});
+  document.getElementById('viewToggleBtn')?.addEventListener('click',()=>{S.viewMode=S.viewMode==='canvas'?'gen':'canvas';render();});
+  document.getElementById('darkBtn2')?.addEventListener('click',()=>{S.dark=!S.dark;render();});
+  document.getElementById('importBtn')?.addEventListener('click',openImport);
+  document.getElementById('addBtn')?.addEventListener('click',()=>openEdit(null));
+  document.getElementById('pngBtn')?.addEventListener('click',exportPNG);
+  document.getElementById('pdfTreeBtn')?.addEventListener('click',printTreePDF);
+  const canvas=document.getElementById('canvas');
+  if(canvas){
+    canvas.addEventListener('mousedown',e=>{if(e.button!==0||e.target.closest('.grip')||e.target.closest('.card-el'))return;_pan={ox:e.clientX-S.tr.x,oy:e.clientY-S.tr.y};canvas.style.cursor='grabbing';});
+    canvas.addEventListener('wheel',e=>{e.preventDefault();const rect=canvas.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;const f=e.deltaY<0?1.1:0.9;const k=Math.max(0.1,Math.min(3,S.tr.k*f));S.tr={x:mx-(mx-S.tr.x)*(k/S.tr.k),y:my-(my-S.tr.y)*(k/S.tr.k),k};applyTransform();},{passive:false});
+    canvas.addEventListener('touchstart',onTS,{passive:false});
+    canvas.addEventListener('touchmove',onTM,{passive:false});
+    canvas.addEventListener('touchend',()=>{_touch=null;});
+  }
+  window.addEventListener('mousemove',onMM);
+  window.addEventListener('mouseup',onMU);
+  renderCanvasContent();
+  if(S.viewMode==='gen')renderGenView();
+  renderDetailPanel();
+}
+
+function onTS(e){
+  if(e.touches.length===1){_touch={mode:'pan',ox:e.touches[0].clientX-S.tr.x,oy:e.touches[0].clientY-S.tr.y};}
+  else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;_touch={mode:'pinch',d:Math.hypot(dx,dy),k:S.tr.k,x:S.tr.x,y:S.tr.y};}
+}
+function onTM(e){
+  e.preventDefault();if(!_touch)return;
+  if(_touch.mode==='pan'&&e.touches.length===1){S.tr={...S.tr,x:e.touches[0].clientX-_touch.ox,y:e.touches[0].clientY-_touch.oy};applyTransform();}
+  else if(_touch.mode==='pinch'&&e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;S.tr={x:_touch.x,y:_touch.y,k:Math.max(0.1,Math.min(3,_touch.k*Math.hypot(dx,dy)/_touch.d))};applyTransform();}
+}
+function onMM(e){
+  if(_drag){const k=S.tr.k;S.pos={...S.pos,[_drag.id]:{x:_drag.px+(e.clientX-_drag.sx)/k,y:_drag.py+(e.clientY-_drag.sy)/k}};updateCardPos(_drag.id);updateLines();schedSave();}
+  else if(_pan){S.tr={...S.tr,x:e.clientX-_pan.ox,y:e.clientY-_pan.oy};applyTransform();}
+}
+function onMU(){_pan=null;_drag=null;document.getElementById('canvas')?.style&&(document.getElementById('canvas').style.cursor='grab');}
+
+function applyTransform(){
+  const cl=document.getElementById('cards-layer');if(cl)cl.style.transform=`translate(${S.tr.x}px,${S.tr.y}px) scale(${S.tr.k})`;
+  const svg=document.getElementById('lines-svg');if(svg){const g=svg.querySelector('g');if(g)g.setAttribute('transform',`translate(${S.tr.x},${S.tr.y}) scale(${S.tr.k})`);}
+  const sb=document.getElementById('scale-badge');if(sb)sb.textContent=Math.round(S.tr.k*100)+'%';
+}
+function updateCardPos(id){const el=document.getElementById('card-'+id);if(el&&S.pos[id]){el.style.left=S.pos[id].x+'px';el.style.top=S.pos[id].y+'px';}}
+
+// ─────────────────────────────────────────
+//  LINES
+// ─────────────────────────────────────────
+function getLines(){
+  const spL=[],chL=[],seen=new Set();
+  Object.values(S.persons).forEach(p=>{
+    (p.spouses||[]).forEach(s=>{const k=[p.id,s.id].sort().join('|');if(!seen.has(k)&&S.pos[p.id]&&S.pos[s.id]){seen.add(k);spL.push({a:p.id,b:s.id});}});
+    const vp=(p.parents||[]).filter(pid=>S.pos[pid]);
+    if(vp.length&&S.pos[p.id])chL.push({child:p.id,parents:vp});
+  });
+  return{spL,chL};
+}
+function renderLines(){
+  const svg=document.getElementById('lines-svg');if(!svg)return;
+  const{spL,chL}=getLines();const c=C();
+  let h='';
+  spL.forEach(({a,b})=>{const pa=S.pos[a],pb=S.pos[b];if(!pa||!pb)return;const hi=S.selId&&(S.selId===a||S.selId===b);h+=`<line x1="${pa.x+CW/2}" y1="${pa.y+CH/2}" x2="${pb.x+CW/2}" y2="${pb.y+CH/2}" stroke="${hi?c.hl:c.ss}" stroke-width="${hi?2:1.5}" stroke-dasharray="5,4"/>`;});
+  chL.forEach(({child,parents})=>{const cp=S.pos[child];if(!cp)return;let sx,sy;if(parents.length===1){const pp=S.pos[parents[0]];if(!pp)return;sx=pp.x+CW/2;sy=pp.y+CH;}else{const p1=S.pos[parents[0]],p2=S.pos[parents[1]];if(!p1||!p2)return;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;const hi=S.selId&&(parents.includes(S.selId)||child===S.selId);h+=`<path d="M${sx} ${sy} C${sx} ${my},${ex} ${my},${ex} ${ey}" fill="none" stroke="${hi?c.hl:c.cs}" stroke-width="${hi?2:1.5}"/>`;});
+  svg.innerHTML=`<g transform="translate(${S.tr.x},${S.tr.y}) scale(${S.tr.k})">${h}</g>`;
+}
+function updateLines(){renderLines();}
+
+// ─────────────────────────────────────────
+//  CARDS
+// ─────────────────────────────────────────
+function renderCanvasContent(){renderLines();renderCards();applyTransform();}
+function renderCards(){
+  const cl=document.getElementById('cards-layer');if(!cl)return;
+  const c=C();
+  const q=S.search.toLowerCase().trim();
+  const matchIds=q?new Set(Object.values(S.persons).filter(p=>(p.name+' '+p.surname).toLowerCase().includes(q)).map(p=>p.id)):null;
+  let h='';
+  Object.values(S.persons).forEach(p=>{
+    const pp=S.pos[p.id];if(!pp)return;
+    const isSel=S.selId===p.id;
+    const isM=matchIds?.has(p.id);
+    const isDim=matchIds&&!isM;
+    const[c1,c2]=gc(p.gender);
+    const age=calcAge(p.birthDate,p.death);
+    const dates=[p.birthDate?'р.'+p.birthDate:'',p.death?'†'+p.death:''].filter(Boolean).join(' ');
+    const loc=[p.city,p.country].filter(Boolean).join(', ');
+    h+=`<div id="card-${p.id}" class="card-el" data-id="${p.id}" style="position:absolute;left:${pp.x}px;top:${pp.y}px;width:${CW}px;height:${CH}px;
+      background:${isSel?c.cardSel:c.card};
+      border:1.5px solid ${isSel?'#6366f1':isM?'#f59e0b':c.border};
+      border-radius:12px;backdrop-filter:blur(14px);padding:10px 10px 9px;
+      pointer-events:auto;cursor:pointer;box-sizing:border-box;user-select:none;
+      box-shadow:${isSel?'0 0 0 3px rgba(99,102,241,0.4),0 10px 36px rgba(0,0,0,0.3)':'0 2px 12px rgba(0,0,0,0.14)'};
+      opacity:${isDim?.15:1};transition:opacity .2s,box-shadow .15s">
+      <div class="grip" data-id="${p.id}" style="position:absolute;top:0;left:0;width:22px;height:${CH}px;display:flex;align-items:center;justify-content:center;cursor:grab;border-radius:12px 0 0 12px;z-index:2;color:${c.muted}">${ico.grip}</div>
+      <div class="card-body" data-id="${p.id}" style="padding-left:14px">
+        <div style="display:flex;align-items:flex-start;gap:7px">
+          ${avatarSVG(p,32)}
+          <div style="flex:1;overflow:hidden">
+            <div style="font-size:10.5px;font-weight:700;color:${c.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">${esc(p.name||'—')}</div>
+            <div style="font-size:9.5px;color:${c.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">${esc(p.surname||'')}</div>
+          </div>
+        </div>
+        ${(dates||age!=null)?`<div style="margin-top:5px;font-size:8.5px;color:${c.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(dates)}${age!=null?' · '+age+' л.':''}</div>`:''}
+        ${loc?`<div style="font-size:8.5px;color:${c.muted};opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(loc)}</div>`:''}
+      </div>
+      ${p.death?`<div style="position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;background:#475569"></div>`:''}
+    </div>`;
+  });
+  cl.innerHTML=h;cl.style.pointerEvents='none';
+  cl.querySelectorAll('.card-body').forEach(el=>{
+    el.addEventListener('click',e=>{e.stopPropagation();const id=el.dataset.id;S.selId=S.selId===id?null:id;renderCards();updateLines();renderDetailPanel();});
+    el.addEventListener('mousedown',e=>e.stopPropagation());
+  });
+  cl.querySelectorAll('.grip').forEach(el=>{
+    el.addEventListener('mousedown',e=>{e.stopPropagation();e.preventDefault();const id=el.dataset.id;const p=S.pos[id];_drag={id,sx:e.clientX,sy:e.clientY,px:p.x,py:p.y};document.body.style.cursor='grabbing';});
+    el.addEventListener('touchstart',e=>{e.stopPropagation();if(e.touches.length!==1)return;const id=el.dataset.id;const p=S.pos[id];_touch=null;_drag={id,sx:e.touches[0].clientX,sy:e.touches[0].clientY,px:p.x,py:p.y};},{passive:true});
+  });
+  cl.addEventListener('touchmove',e=>{if(!_drag||e.touches.length!==1)return;e.preventDefault();const k=S.tr.k;S.pos={...S.pos,[_drag.id]:{x:_drag.px+(e.touches[0].clientX-_drag.sx)/k,y:_drag.py+(e.touches[0].clientY-_drag.sy)/k}};updateCardPos(_drag.id);updateLines();schedSave();},{passive:false});
+  cl.addEventListener('touchend',()=>{_drag=null;});
+}
+
+// ─────────────────────────────────────────
+//  GENERATION VIEW (7 gens)
+// ─────────────────────────────────────────
+function renderGenView(){
+  const gv=document.getElementById('gen-view');if(!gv)return;
+  const c=C();
+  const gens=computeGenerations(S.persons);
+  const maxGen=Math.min(7,Math.max(...Object.values(gens)));
+  const byGen={};
+  for(let i=1;i<=maxGen;i++)byGen[i]=[];
+  Object.values(S.persons).forEach(p=>{const g=Math.min(7,gens[p.id]||1);byGen[g].push(p);});
+  const q=S.search.toLowerCase().trim();
+  let h='';
+  for(let g=1;g<=maxGen;g++){
+    const items=byGen[g];if(!items.length)continue;
+    h+=`<div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.05em">${getGenLabel(g)}</div>
+        <div style="flex:1;height:1px;background:${c.genBorder}"></div>
+        <div style="font-size:11px;color:${c.muted}">${items.length} чел.</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${items.map(p=>{
+          const age=calcAge(p.birthDate,p.death);
+          const [c1,c2]=gc(p.gender);
+          const isSel=S.selId===p.id;
+          const isM=q&&(p.name+' '+p.surname).toLowerCase().includes(q);
+          const isDim=q&&!isM;
+          return`<div class="gen-card" data-id="${p.id}" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:${isSel?c.cardSel:c.card};border:1.5px solid ${isSel?'#6366f1':isM?'#f59e0b':c.border};cursor:pointer;flex:0 0 auto;width:calc(50% - 4px);min-width:150px;max-width:220px;box-sizing:border-box;opacity:${isDim?.2:1};transition:opacity .15s;user-select:none">
+            ${avatarSVG(p,34)}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11.5px;font-weight:700;color:${c.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name||'—')}</div>
+              <div style="font-size:10px;color:${c.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.surname||'')}</div>
+              ${age!=null?`<div style="font-size:9.5px;color:${c.muted};margin-top:2px">${ageLabel(age)}${p.death?' †':''}</div>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  gv.innerHTML=h;
+  gv.querySelectorAll('.gen-card').forEach(el=>{
+    el.addEventListener('click',()=>{S.selId=S.selId===el.dataset.id?null:el.dataset.id;renderGenView();renderDetailPanel();});
+  });
+}
+
+function updateSearch(val){
+  S.search=val;
+  if(S.viewMode==='canvas'){renderCards();updateLines();}
+  else renderGenView();
+}
+
+// ─────────────────────────────────────────
+//  RELATIVES
+// ─────────────────────────────────────────
+function getRelatives(){
+  const p=S.persons[S.selId];if(!p)return{};
+  const pars=(p.parents||[]).map(id=>S.persons[id]).filter(Boolean);
+  const sps=(p.spouses||[]).map(s=>S.persons[s.id]).filter(Boolean);
+  const chs=Object.values(S.persons).filter(x=>(x.parents||[]).includes(p.id));
+  const sibSet=new Set(p.parents||[]);
+  const sibs=Object.values(S.persons).filter(x=>x.id!==p.id&&(x.parents||[]).some(pid=>sibSet.has(pid)));
+  const auMap=new Map();
+  (p.parents||[]).forEach(pid=>{const par=S.persons[pid];if(!par||!par.parents?.length)return;const gp=new Set(par.parents);Object.values(S.persons).forEach(x=>{if(x.id!==par.id&&(x.parents||[]).some(g=>gp.has(g))){auMap.set(x.id,x);(x.spouses||[]).forEach(s=>{if(S.persons[s.id])auMap.set(s.id,S.persons[s.id]);});}});});
+  const aus=Array.from(auMap.values());
+  const auIds=new Set(aus.map(a=>a.id));
+  const cous=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>auIds.has(pid)));
+  const gpMap=new Map();
+  (p.parents||[]).forEach(pid=>{const par=S.persons[pid];if(par)(par.parents||[]).forEach(gpid=>{if(S.persons[gpid])gpMap.set(gpid,S.persons[gpid]);});});
+  const gps=Array.from(gpMap.values());
+  // great-grandparents
+  const ggpMap=new Map();
+  gps.forEach(gp=>{(gp.parents||[]).forEach(ggpid=>{if(S.persons[ggpid])ggpMap.set(ggpid,S.persons[ggpid]);});});
+  const ggps=Array.from(ggpMap.values());
+  const cIds=new Set(chs.map(c=>c.id));
+  const gcs=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>cIds.has(pid)));
+  // great-grandchildren
+  const gcIds=new Set(gcs.map(c=>c.id));
+  const ggcs=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>gcIds.has(pid)));
+  const z=[],n=[];chs.forEach(c=>{(c.spouses||[]).forEach(s=>{const sp=S.persons[s.id];if(!sp)return;if(c.gender==='female')z.push(sp);else if(c.gender==='male')n.push(sp);});});
+  const sIds=new Set(sibs.map(x=>x.id));
+  const neps=Object.values(S.persons).filter(x=>(x.parents||[]).some(pid=>sIds.has(pid)));
+  return{pars,sps,chs,sibs,aus,cous,gps,ggps,gcs,ggcs,inLaws:{z,n,all:[...z,...n]},neps};
+}
+
+// ─────────────────────────────────────────
+//  DETAIL PANEL
+// ─────────────────────────────────────────
+function renderDetailPanel(){
+  const dp=document.getElementById('detail-panel');if(!dp)return;
+  if(!S.selId||!S.persons[S.selId]){dp.innerHTML='';return;}
+  const c=C();const p=S.persons[S.selId];
+  const rel=getRelatives();
+  const age=calcAge(p.birthDate,p.death);
+  const dateStr=[p.birthDate?'р. '+p.birthDate:'',p.death?'† '+p.death:''].filter(Boolean).join('  ·  ');
+  const locStr=[p.city,p.country].filter(Boolean).join(', ');
+  const sections=[
+    {l:'Прапрадедушки и прапрабабушки',items:rel.ggps},
+    {l:'Дедушки и бабушки',items:rel.gps},
+    {l:'Родители',items:rel.pars},
+    {l:'Братья и сёстры',items:rel.sibs,bd:gbd(rel.sibs,'брата','сестры')},
+    {l:'Дяди и тёти',items:rel.aus,bd:gbd(rel.aus,'дядей','тётей')},
+    {l:'Двоюродные',items:rel.cous,bd:gbd(rel.cous,'брата','сестры')},
+    {l:'Супруги',items:rel.sps},
+    {l:'Дети',items:rel.chs},
+    {l:'Зятья и невестки',items:rel.inLaws.all,bd:[rel.inLaws.z.length?rel.inLaws.z.length+' зятя':'',rel.inLaws.n.length?rel.inLaws.n.length+' невестки':''].filter(Boolean).join(' · ')},
+    {l:'Внуки',items:rel.gcs},
+    {l:'Правнуки',items:rel.ggcs},
+    {l:'Племянники и племянницы',items:rel.neps,bd:gbd(rel.neps,'племянника','племянницы')},
+  ].filter(s=>s.items&&s.items.length>0);
+  dp.innerHTML=`<div class="up" style="position:absolute;bottom:14px;right:14px;width:272px;max-height:calc(100vh - 80px);overflow-y:auto;background:var(--panel);backdrop-filter:blur(24px);border-radius:16px;border:1px solid var(--border);padding:16px;z-index:300;box-shadow:0 28px 90px rgba(0,0,0,0.35)">
+    <button id="closeDetail" style="position:absolute;top:11px;right:11px;background:none;border:none;cursor:pointer;color:var(--muted);display:flex">${ico.x}</button>
+    <button id="editPersonBtn" style="position:absolute;top:11px;right:34px;background:none;border:none;cursor:pointer;color:#6366f1;display:flex">${ico.edit}</button>
+    <!-- HEADER -->
+    <div style="display:flex;gap:11px;align-items:center;margin-bottom:6px">
+      ${avatarSVG(p,48)}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.2">${esc(p.name)}</div>
+        <div style="font-size:12px;color:var(--sub)">${esc(p.surname)}</div>
+        ${age!=null?`<div style="margin-top:4px"><span style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;display:inline-block">${ageLabel(age)}</span></div>`:''}
+      </div>
+    </div>
+    <!-- PDF BUTTONS -->
+    <div style="display:flex;gap:6px;margin-bottom:11px">
+      <button id="pdfPersonBtn" style="flex:1;padding:6px 4px;border-radius:9px;border:1px solid #6366f1;background:#6366f112;color:#6366f1;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px">${ico.pdf} PDF анкеты</button>
+      <button id="pdfTreeBtn2" style="flex:1;padding:6px 4px;border-radius:9px;border:1px solid #10b981;background:#10b98112;color:#10b981;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px">${ico.pdf} PDF дерева</button>
+    </div>
+    <!-- META -->
+    ${dateStr?`<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;color:var(--sub);font-size:11px"><span style="color:var(--muted);flex-shrink:0;margin-top:1px">${ico.cal}</span>${esc(dateStr)}</div>`:''}
+    ${locStr?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;color:var(--sub);font-size:11px"><span style="color:var(--muted);flex-shrink:0">${ico.pin}</span>${esc(locStr)}</div>`:''}
+    ${p.bio?`<div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.55;padding:7px 9px;background:var(--inp);border-radius:8px">${esc(p.bio)}</div>`:''}
+    <!-- RELATIVES -->
+    ${sections.map(s=>`<div style="margin-top:10px">
+      <div style="font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:${s.bd?2:5}px">${esc(s.l)} (${s.items.length})</div>
+      ${s.bd?`<div style="font-size:10px;color:var(--sub);margin-bottom:4px">${esc(s.bd)}</div>`:''}
+      ${s.items.map(r=>`<div class="rel-link" data-id="${r.id}" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer">${avatarSVG(r,20)}<span style="font-size:11px;color:#6366f1">${esc(r.name)} ${esc(r.surname)}</span></div>`).join('')}
+    </div>`).join('')}
+  </div>`;
+  document.getElementById('closeDetail')?.addEventListener('click',()=>{S.selId=null;renderDetailPanel();if(S.viewMode==='canvas'){renderCards();updateLines();}else renderGenView();});
+  document.getElementById('editPersonBtn')?.addEventListener('click',()=>openEdit(p));
+  document.getElementById('pdfPersonBtn')?.addEventListener('click',()=>printPersonPDF(p));
+  document.getElementById('pdfTreeBtn2')?.addEventListener('click',printTreePDF);
+  dp.querySelectorAll('.rel-link').forEach(el=>{el.addEventListener('click',()=>{S.selId=el.dataset.id;if(S.viewMode==='canvas'){renderCards();updateLines();}else renderGenView();renderDetailPanel();});});
+}
+
+function renderToast(){
+  const el=document.getElementById('toast-el');if(!el)return;
+  if(S.toast){el.textContent=S.toast;el.style.display='block';}else el.style.display='none';
+}
+function showToast(msg){clearTimeout(S.toastTimer);S.toast=msg;renderToast();S.toastTimer=setTimeout(()=>{S.toast=null;renderToast();},4000);}
+
+// ─────────────────────────────────────────
+//  EDIT MODAL
+// ─────────────────────────────────────────
+function openEdit(person){
+  if(person){S.ef={...person};S.ePar=[...(person.parents||[])];S.eSp=(person.spouses||[]).map(s=>s.id);S.eCh=Object.values(S.persons).filter(x=>(x.parents||[]).includes(person.id)).map(x=>x.id);}
+  else{const id='p'+Date.now();S.ef={id,name:'',surname:'',birthDate:'',death:'',city:'',country:'',bio:'',gender:'male',parents:[],spouses:[]};S.ePar=[];S.eSp=[];S.eCh=[];}
+  S.editModal=person?person.id:'new';S.pickerOpen=null;S.pickerQ='';
+  renderEditModal();
+}
+function renderEditModal(){
+  const m=document.getElementById('modals');if(!m||!S.editModal)return;
+  const c=C();const ef=S.ef;
+  const IS=`width:100%;box-sizing:border-box;padding:8px 11px;border-radius:9px;border:1px solid var(--border);background:var(--inp);color:var(--text);font-size:12px;outline:none`;
+  function chips(ids,color,type){
+    return ids.map(id=>{const p=S.persons[id];if(!p)return'';return`<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 7px 3px 4px;border-radius:20px;background:${color}18;border:1px solid ${color}40;font-size:10.5px;color:${color};margin:2px">${avatarSVG(p,16)}<span>${esc(p.name)} ${esc(p.surname)}</span><span class="rm-chip" data-type="${type}" data-id="${id}" style="cursor:pointer;margin-left:2px;font-size:13px;line-height:1">×</span></div>`;}).join('');
+  }
+  function picker(type,label,color,selIds,max){
+    const open=S.pickerOpen===type;const q=S.pickerQ||'';
+    const excl=[ef.id,...(type==='parents'?S.eCh:type==='children'?S.ePar:[])];
+    const filtered=Object.values(S.persons).filter(p=>!excl.includes(p.id)&&(p.name+' '+p.surname).toLowerCase().includes(q.toLowerCase())).slice(0,35);
+    return`<div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <label style="font-size:11px;color:var(--sub);font-weight:600">${esc(label)}</label>
+        <button class="toggle-picker" data-type="${type}" style="font-size:10px;padding:2px 9px;border-radius:6px;border:1px solid ${open?color:'var(--border)'};background:${open?color+'18':'transparent'};color:${open?color:'var(--muted)'};cursor:pointer">${open?'Скрыть':'+ Добавить'}</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:2px;min-height:2px">${chips(selIds,color,type)}</div>
+      ${open?`<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:4px">
+        <div style="padding:5px 8px;border-bottom:1px solid var(--border);position:relative">
+          <input id="pickerQ" value="${esc(q)}" placeholder="Поиск…" style="width:100%;box-sizing:border-box;padding:3px 3px 3px 20px;border:none;background:transparent;color:var(--text);font-size:11px;outline:none"/>
+          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);display:flex;color:var(--muted)">${ico.search}</span>
+        </div>
+        <div style="max-height:130px;overflow-y:auto">
+          ${filtered.length===0?`<div style="padding:8px;text-align:center;font-size:11px;color:var(--muted)">Не найдено</div>`:
+          filtered.map(p=>{const isSel=selIds.includes(p.id);const isDis=!isSel&&max&&selIds.length>=max;return`<div class="pick-item" data-type="${type}" data-id="${p.id}" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:${isDis?'not-allowed':'pointer'};opacity:${isDis?.35:1};background:${isSel?color+'18':'transparent'}">${avatarSVG(p,20)}<span style="font-size:11px;flex:1;color:var(--text)">${esc(p.name)} ${esc(p.surname)}</span>${isSel?`<span style="color:${color}">${ico.check}</span>`:''}</div>`;}).join('')}
+        </div>
+      </div>`:''}
+    </div>`;
+  }
+  m.innerHTML=`<div class="modal-bg" id="edit-bg"><div class="pop" style="width:100%;max-width:430px;max-height:90vh;overflow-y:auto;background:var(--modal);border-radius:18px;padding:22px;border:1px solid var(--border);box-shadow:0 30px 100px rgba(0,0,0,0.5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h2 style="color:var(--text);font-size:15px;margin:0;font-weight:800">${S.editModal==='new'?'Добавить человека':'Редактировать'}</h2>
+      <button id="closeEdit" style="background:none;border:none;cursor:pointer;color:var(--muted);display:flex">${ico.x.replace('14','18').replace('14','18')}</button>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;color:var(--sub);display:block;margin-bottom:5px;font-weight:600">Пол</label>
+      <div style="display:flex;gap:6px">
+        ${[['male','Мужской','#6366f1'],['female','Женский','#ec4899'],['unknown','Неизвестно','#0ea5e9']].map(([v,l,col])=>`<button class="g-btn" data-val="${v}" style="flex:1;padding:7px 4px;border-radius:9px;font-size:11px;font-weight:600;border:1px solid ${ef.gender===v?col:'var(--border)'};background:${ef.gender===v?col+'22':'transparent'};color:${ef.gender===v?col:'var(--sub)'};cursor:pointer">${l}</button>`).join('')}
+      </div>
+    </div>
+    ${[['name','Имя'],['surname','Фамилия'],['birthDate','Дата рождения (ДД.ММ.ГГГГ)'],['death','Год смерти'],['city','Город'],['country','Страна']].map(([k,l])=>`<div style="margin-bottom:10px"><label style="font-size:11px;color:var(--sub);display:block;margin-bottom:3px;font-weight:600">${l}</label><input class="ef-inp" data-key="${k}" value="${esc(ef[k]||'')}" style="${IS}"/></div>`).join('')}
+    <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--sub);display:block;margin-bottom:3px;font-weight:600">Биография</label><textarea class="ef-inp" data-key="bio" rows="2" style="${IS};resize:vertical">${esc(ef.bio||'')}</textarea></div>
+    <div style="border-top:1px solid var(--border);padding-top:13px">${picker('parents','Родители (макс. 2)','#6366f1',S.ePar,2)}</div>
+    <div style="border-top:1px solid var(--border);padding-top:13px">${picker('spouses','Супруги','#f43f5e',S.eSp,null)}</div>
+    <div style="border-top:1px solid var(--border);padding-top:13px;margin-bottom:16px">${picker('children','Дети','#10b981',S.eCh,null)}</div>
+    <div style="display:flex;gap:8px">
+      <button id="saveEdit" style="flex:1;padding:11px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:13px;font-weight:700">Сохранить</button>
+      ${S.editModal!=='new'?`<button id="delPerson" style="padding:11px 14px;border-radius:11px;background:transparent;border:1px solid #ef4444;color:#ef4444;font-size:12px">Удалить</button>`:''}
+    </div>
+  </div></div>`;
+  document.getElementById('closeEdit')?.addEventListener('click',()=>{S.editModal=null;m.innerHTML='';});
+  document.getElementById('edit-bg')?.addEventListener('click',e=>{if(e.target.id==='edit-bg'){S.editModal=null;m.innerHTML='';}});
+  document.getElementById('saveEdit')?.addEventListener('click',doSave);
+  document.getElementById('delPerson')?.addEventListener('click',()=>{if(confirm('Удалить человека?'))doDelPerson(S.ef.id);});
+  m.querySelectorAll('.g-btn').forEach(el=>el.addEventListener('click',()=>{S.ef={...S.ef,gender:el.dataset.val};renderEditModal();}));
+  m.querySelectorAll('.toggle-picker').forEach(el=>el.addEventListener('click',()=>{S.pickerOpen=S.pickerOpen===el.dataset.type?null:el.dataset.type;S.pickerQ='';renderEditModal();if(S.pickerOpen)setTimeout(()=>document.getElementById('pickerQ')?.focus(),40);}));
+  m.querySelectorAll('.pick-item').forEach(el=>el.addEventListener('click',()=>{
+    const{type,id}=el.dataset;
+    const arr=type==='parents'?S.ePar:type==='spouses'?S.eSp:S.eCh;
+    const maxOk=type!=='parents'||arr.length<2;
+    if(arr.includes(id)){const i=arr.indexOf(id);arr.splice(i,1);}
+    else if(maxOk)arr.push(id);
+    renderEditModal();
+  }));
+  m.querySelectorAll('.rm-chip').forEach(el=>el.addEventListener('click',()=>{
+    const{type,id}=el.dataset;
+    const arr=type==='parents'?S.ePar:type==='spouses'?S.eSp:S.eCh;
+    const i=arr.indexOf(id);if(i>-1)arr.splice(i,1);
+    renderEditModal();
+  }));
+  setTimeout(()=>{if(S.editModal==='new')m.querySelector('.ef-inp')?.focus();},50);
+}
+function doSave(){
+  const id=S.ef.id;
+  const up={...S.ef,parents:[...S.ePar],spouses:S.eSp.map(sid=>({id:sid}))};
+  const np={...S.persons,[id]:up};
+  S.eCh.forEach(cid=>{if(np[cid]&&!np[cid].parents.includes(id))np[cid]={...np[cid],parents:[...np[cid].parents,id]};});
+  Object.values(S.persons).filter(p=>(p.parents||[]).includes(id)&&p.id!==id).forEach(c=>{if(!S.eCh.includes(c.id)&&np[c.id])np[c.id]={...np[c.id],parents:np[c.id].parents.filter(pid=>pid!==id)};});
+  S.eSp.forEach(sid=>{if(np[sid]&&!(np[sid].spouses||[]).some(s=>s.id===id))np[sid]={...np[sid],spouses:[...(np[sid].spouses||[]),{id}]};});
+  (S.persons[id]?.spouses||[]).map(s=>s.id).forEach(sid=>{if(!S.eSp.includes(sid)&&np[sid])np[sid]={...np[sid],spouses:(np[sid].spouses||[]).filter(s=>s.id!==id)};});
+  S.persons=np;
+  if(!S.pos[id])S.pos={...S.pos,[id]:{x:300,y:300}};
+  S.editModal=null;document.getElementById('modals').innerHTML='';
+  renderCanvasContent();if(S.viewMode==='gen')renderGenView();renderDetailPanel();schedSave();
+}
+function doDelPerson(id){
+  const{[id]:_,...rest}=S.persons;S.persons=rest;
+  const{[id]:__,...posRest}=S.pos;S.pos=posRest;
+  S.selId=null;S.editModal=null;document.getElementById('modals').innerHTML='';
+  renderCanvasContent();if(S.viewMode==='gen')renderGenView();renderDetailPanel();schedSave();
+}
+
+// ─────────────────────────────────────────
+//  IMPORT MODAL
+// ─────────────────────────────────────────
+async function openImport(){
+  S.importModal=true;S.importSel=null;S.importQ='';S.importBusy=true;
+  renderImportModal();
+  const cache={};
+  for(const t of S.treesIndex.filter(t=>t.id!==S.treeId)){try{const r=db.get('td:'+t.id);if(r)cache[t.id]=JSON.parse(r);}catch(e){}}
+  S.treeCache=cache;S.importBusy=false;renderImportModal();
+}
+function renderImportModal(){
+  const m=document.getElementById('modals');if(!m||!S.importModal)return;
+  const c=C();
+  const q=S.importQ.toLowerCase();
+  const res=q?Object.entries(S.treeCache).flatMap(([tid,data])=>{const title=(S.treesIndex.find(t=>t.id===tid)||{}).title||tid;return Object.values(data.persons||{}).filter(p=>(p.name+' '+p.surname).toLowerCase().includes(q)).map(p=>({tid,title,person:p}));}).slice(0,25):[];
+  window._impRes=res;
+  const IS=`width:100%;box-sizing:border-box;padding:8px 11px;border-radius:9px;border:1px solid var(--border);background:var(--inp);color:var(--text);font-size:12px;outline:none`;
+  m.innerHTML=`<div class="modal-bg" id="imp-bg"><div class="pop" style="width:100%;max-width:400px;max-height:80vh;overflow-y:auto;background:var(--modal);border-radius:18px;padding:20px;border:1px solid var(--border);box-shadow:0 30px 100px rgba(0,0,0,0.5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="color:var(--text);font-size:15px;margin:0;font-weight:800">Найти общего родственника</h2>
+      <button id="closeImp" style="background:none;border:none;cursor:pointer;color:var(--muted);display:flex">${ico.x.replace('14','18').replace('14','18')}</button>
+    </div>
+    <p style="font-size:12px;color:var(--sub);margin:0 0 12px;line-height:1.55">Поиск по другим деревьям. Импортируйте ветку и свяжите через редактирование.</p>
+    ${S.importSel?`
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--inp);border-radius:11px;margin-bottom:12px">${avatarSVG(S.importSel.person,38)}<div><div style="font-size:13px;font-weight:700;color:var(--text)">${esc(S.importSel.person.name)} ${esc(S.importSel.person.surname)}</div><div style="font-size:11px;color:var(--sub)">Дерево «${esc(S.importSel.title)}»</div></div></div>
+      <p style="font-size:12px;color:var(--sub);margin-bottom:14px;line-height:1.5">Будет импортировано ${Object.keys((S.treeCache[S.importSel.tid]||{}).persons||{}).length} чел.</p>
+      <div style="display:flex;gap:8px"><button id="doImport" style="flex:1;padding:11px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:13px;font-weight:700">Импортировать ветку</button><button id="backImp" style="padding:11px 14px;border-radius:11px;background:transparent;border:1px solid var(--border);color:var(--sub);font-size:12px">Назад</button></div>
+    `:`
+      <input id="impQ" value="${esc(S.importQ)}" placeholder="Имя или фамилия…" style="${IS};margin-bottom:10px"/>
+      ${S.importBusy?`<div style="text-align:center;font-size:12px;color:var(--muted);padding:14px">Загрузка…</div>`:''}
+      ${!S.importBusy&&S.treesIndex.length<=1?`<div style="text-align:center;font-size:12px;color:var(--muted);padding:14px">Других деревьев нет</div>`:''}
+      ${!S.importBusy&&S.importQ&&!res.length?`<div style="text-align:center;font-size:12px;color:var(--muted);padding:14px">Не найдено</div>`:''}
+      ${res.map((r,i)=>`<div class="imp-item" data-idx="${i}" style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:9px;cursor:pointer">${avatarSVG(r.person,28)}<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;color:var(--text)">${esc(r.person.name)} ${esc(r.person.surname)}</div><div style="font-size:10.5px;color:var(--muted)">Дерево «${esc(r.title)}»</div></div>${ico.chevron}</div>`).join('')}
+    `}
+  </div></div>`;
+  document.getElementById('closeImp')?.addEventListener('click',()=>{S.importModal=false;m.innerHTML='';});
+  document.getElementById('imp-bg')?.addEventListener('click',e=>{if(e.target.id==='imp-bg'){S.importModal=false;m.innerHTML='';}});
+  m.querySelectorAll('.imp-item').forEach(el=>el.addEventListener('click',()=>{S.importSel=window._impRes[+el.dataset.idx];renderImportModal();}));
+  document.getElementById('backImp')?.addEventListener('click',()=>{S.importSel=null;renderImportModal();});
+  document.getElementById('doImport')?.addEventListener('click',()=>{
+    const{tid,person,title}=S.importSel;const data=S.treeCache[tid];if(!data)return;
+    const idMap={};Object.keys(data.persons||{}).forEach(oid=>{idMap[oid]='imp_'+tid+'_'+oid;});
+    const rp={};Object.values(data.persons||{}).forEach(p=>{rp[idMap[p.id]]={...p,id:idMap[p.id],parents:(p.parents||[]).map(pid=>idMap[pid]).filter(Boolean),spouses:(p.spouses||[]).map(s=>({...s,id:idMap[s.id]})).filter(s=>s.id)};});
+    const cv=Object.values(S.pos);const cmx=cv.length?Math.min(...cv.map(p=>p.x)):0;const cmy=cv.length?Math.max(...cv.map(p=>p.y)):0;
+    const sv=Object.values(data.positions||{});const smx=sv.length?Math.min(...sv.map(p=>p.x)):0;const smy=sv.length?Math.min(...sv.map(p=>p.y)):0;
+    const rpos={};Object.entries(data.positions||{}).forEach(([oid,p])=>{if(idMap[oid])rpos[idMap[oid]]={x:p.x+(cmx-smx),y:p.y+(cmy+280-smy)};});
+    S.persons={...S.persons,...rp};S.pos={...S.pos,...rpos};S.selId=idMap[person.id];
+    S.importModal=false;m.innerHTML='';renderCanvasContent();renderDetailPanel();
+    showToast('Ветка «'+title+'» импортирована ('+Object.keys(data.persons||{}).length+' чел.).');schedSave();
+  });
+  if(!S.importSel&&!S.importBusy)setTimeout(()=>document.getElementById('impQ')?.focus(),40);
+}
+
+// ─────────────────────────────────────────
+//  PDF — INDIVIDUAL
+// ─────────────────────────────────────────
+function printPersonPDF(p){
+  const rel=getRelatives();
+  const age=calcAge(p.birthDate,p.death);
+  const[c1,c2]=gc(p.gender);
+  const ctree=S.treesIndex.find(t=>t.id===S.treeId)||{};
+  const gens=computeGenerations(S.persons);
+  const genNum=Math.min(7,gens[p.id]||1);
+  function sec(label,items){
+    if(!items||!items.length)return'';
+    return`<div class="sec">
+      <div class="sec-title">${label} (${items.length})</div>
+      <div class="chips">${items.map(r=>`<span class="chip">${r.name} ${r.surname}${calcAge(r.birthDate,r.death)!=null?' ('+ageLabel(calcAge(r.birthDate,r.death))+')':''}</span>`).join('')}</div>
+    </div>`;
+  }
+  const sections=[
+    sec('Прапрадедушки и прапрабабушки',rel.ggps),
+    sec('Дедушки и бабушки',rel.gps),
+    sec('Родители',rel.pars),
+    sec('Братья и сёстры',rel.sibs),
+    sec('Дяди и тёти',rel.aus),
+    sec('Двоюродные братья и сёстры',rel.cous),
+    sec('Супруги',rel.sps),
+    sec('Дети',rel.chs),
+    sec('Зятья и невестки',rel.inLaws.all),
+    sec('Внуки',rel.gcs),
+    sec('Правнуки',rel.ggcs),
+    sec('Племянники и племянницы',rel.neps),
+  ].join('');
+  const win=window.open('','_blank');if(!win)return;
+  win.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"/>
+  <title>${p.name} ${p.surname}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+    body{background:#f0f2f8;padding:24px;color:#18202e}
+    @media print{body{background:#fff;padding:12px}@page{margin:12mm;size:A4}}
+    .page{background:#fff;border-radius:12px;padding:28px 30px;max-width:680px;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
+    .hdr{display:flex;align-items:center;gap:18px;padding-bottom:20px;border-bottom:2px solid #eef0f5;margin-bottom:20px}
+    .av{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:800;flex-shrink:0}
+    .name{font-size:22px;font-weight:800;line-height:1.15;letter-spacing:-.4px}
+    .surname{font-size:14px;color:#5a6380;margin-top:2px}
+    .age-badge{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:12px;font-weight:700;padding:3px 11px;border-radius:20px;margin-top:6px}
+    .gen-badge{display:inline-block;background:#f0f2f8;color:#5a6380;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;margin-top:4px;margin-left:6px}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:20px;padding:14px 16px;background:#f8f9fc;border-radius:10px}
+    .meta-row{display:flex;flex-direction:column;gap:2px}
+    .meta-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9aa0b8}
+    .meta-val{font-size:13px;color:#18202e;font-weight:500}
+    .bio{background:#f0f2f8;border-left:3px solid #6366f1;padding:10px 14px;border-radius:6px;font-size:13px;color:#5a6380;line-height:1.6;margin-bottom:18px}
+    .sec{margin-bottom:16px}
+    .sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9aa0b8;margin-bottom:7px}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{background:#eef0f5;border-radius:20px;padding:4px 11px;font-size:12px;color:#18202e;font-weight:500}
+    .footer{margin-top:24px;padding-top:13px;border-top:1px solid #eef0f5;display:flex;justify-content:space-between;font-size:11px;color:#9aa0b8}
+    .print-btn{position:fixed;bottom:22px;right:22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:13px 26px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 22px rgba(99,102,241,0.4)}
+    @media print{.print-btn{display:none}}
+  </style></head><body>
+  <div class="page">
+    <div class="hdr">
+      <div class="av">${(p.name||'?')[0]}</div>
+      <div>
+        <div class="name">${esc(p.name||'')}${age!=null?' <span style="color:#6366f1;font-size:18px;font-weight:700">('+ageLabel(age)+')</span>':''}</div>
+        <div class="surname">${esc(p.surname||'')}</div>
+        ${age!=null?`<span class="age-badge">${ageLabel(age)}</span>`:''}
+        <span class="gen-badge">${getGenLabel(genNum)}</span>
+      </div>
+    </div>
+    <div class="meta">
+      ${p.birthDate?`<div class="meta-row"><div class="meta-label">Дата рождения</div><div class="meta-val">${esc(p.birthDate)}</div></div>`:''}
+      ${p.death?`<div class="meta-row"><div class="meta-label">Год смерти</div><div class="meta-val">${esc(p.death)}</div></div>`:''}
+      ${age!=null?`<div class="meta-row"><div class="meta-label">Возраст</div><div class="meta-val">${ageLabel(age)}</div></div>`:''}
+      ${p.city?`<div class="meta-row"><div class="meta-label">Город</div><div class="meta-val">${esc(p.city)}</div></div>`:''}
+      ${p.country?`<div class="meta-row"><div class="meta-label">Страна</div><div class="meta-val">${esc(p.country)}</div></div>`:''}
+      <div class="meta-row"><div class="meta-label">Пол</div><div class="meta-val">${p.gender==='male'?'Мужской':p.gender==='female'?'Женский':'Неизвестно'}</div></div>
+    </div>
+    ${p.bio?`<div class="bio">${esc(p.bio)}</div>`:''}
+    ${sections}
+    <div class="footer"><span>${esc(ctree.title||'Семейное Древо')}</span><span>${new Date().toLocaleDateString('ru-RU')}</span></div>
+  </div>
+  <button class="print-btn" onclick="window.print()">🖨 Распечатать / PDF</button>
+  </body></html>`);
+  win.document.close();
+}
+
+// ─────────────────────────────────────────
+//  PDF — FULL TREE
+// ─────────────────────────────────────────
+function printTreePDF(){
+  const margin=50,sc=1.6;
+  const all=Object.entries(S.pos).filter(([id])=>S.persons[id]);if(!all.length)return;
+  const xs=all.map(([,p])=>p.x),ys=all.map(([,p])=>p.y);
+  const mnX=Math.min(...xs)-margin,mnY=Math.min(...ys)-margin;
+  const W=Math.max(...xs)+CW+margin-mnX,H=Math.max(...ys)+CH+margin-mnY;
+  const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;
+  const ctx=cv.getContext('2d');ctx.scale(sc,sc);ctx.translate(-mnX,-mnY);
+  ctx.fillStyle='#ffffff';ctx.fillRect(mnX,mnY,W,H);
+  const{spL,chL}=getLines();
+  spL.forEach(({a,b})=>{const pa=S.pos[a],pb=S.pos[b];if(!pa||!pb)return;ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(0,0,0,0.13)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pa.x+CW/2,pa.y+CH/2);ctx.lineTo(pb.x+CW/2,pb.y+CH/2);ctx.stroke();ctx.restore();});
+  chL.forEach(({child,parents})=>{const cp=S.pos[child];if(!cp)return;let sx,sy;if(parents.length===1){const pp=S.pos[parents[0]];if(!pp)return;sx=pp.x+CW/2;sy=pp.y+CH;}else{const p1=S.pos[parents[0]],p2=S.pos[parents[1]];if(!p1||!p2)return;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;ctx.strokeStyle='rgba(0,0,0,0.18)';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(sx,sy);ctx.bezierCurveTo(sx,my,ex,my,ex,ey);ctx.stroke();});
+  Object.values(S.persons).forEach(p=>{const pp=S.pos[p.id];if(!pp)return;
+    ctx.fillStyle='#f8f9fc';ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([]);
+    const r=10,x=pp.x,y=pp.y,w=CW,h=CH;
+    ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.fill();ctx.stroke();
+    const[c1,c2]=gc(p.gender);const g=ctx.createLinearGradient(pp.x+10,pp.y+10,pp.x+38,pp.y+38);g.addColorStop(0,c1);g.addColorStop(1,c2);
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(pp.x+23,pp.y+30,14,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.fillText((p.name||'?')[0],pp.x+23,pp.y+34);ctx.textAlign='left';
+    ctx.fillStyle='#18202e';ctx.font='bold 10px system-ui,sans-serif';ctx.fillText((p.name||'').slice(0,17),pp.x+42,pp.y+23);
+    ctx.fillStyle='#5a6380';ctx.font='9px system-ui,sans-serif';ctx.fillText((p.surname||'').slice(0,17),pp.x+42,pp.y+34);
+    const age=calcAge(p.birthDate,p.death);
+    const d=[p.birthDate?'р.'+p.birthDate:'',age!=null?ageLabel(age):''].filter(Boolean).join(' · ');
+    ctx.fillStyle='#9aa0b8';ctx.font='8.5px system-ui,sans-serif';if(d)ctx.fillText(d.slice(0,26),pp.x+10,pp.y+58);
+    const loc=[p.city,p.country].filter(Boolean).join(', ');if(loc)ctx.fillText(loc.slice(0,24),pp.x+10,pp.y+70);
+  });
+  const imgData=cv.toDataURL('image/png');
+  const ctree=S.treesIndex.find(t=>t.id===S.treeId)||{};
+  const win=window.open('','_blank');if(!win)return;
+  win.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"/>
+  <title>${esc(ctree.title||'Семейное Древо')}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+    body{background:#e5e7ef;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+    @media print{body{background:#fff;padding:0}@page{margin:5mm;size:landscape A3}}
+    .info{background:#fff;border-radius:12px;padding:14px 22px;width:100%;max-width:1100px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+    .title{font-size:18px;font-weight:800;color:#18202e}
+    .sub{font-size:12px;color:#9aa0b8;margin-top:2px}
+    .tree-img{background:#fff;border-radius:12px;overflow:auto;box-shadow:0 2px 20px rgba(0,0,0,0.08);max-width:100%}
+    img{display:block;max-width:100%;height:auto}
+    .print-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:13px 28px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 22px rgba(99,102,241,0.35)}
+    @media print{.print-btn,.info{display:none}}
+  </style></head><body>
+  <div class="info">
+    <div><div class="title">${esc(ctree.title||'Семейное Древо')}</div><div class="sub">${Object.keys(S.persons).length} чел. · до ${Math.min(7,Math.max(...Object.values(computeGenerations(S.persons))))} поколений · ${new Date().toLocaleDateString('ru-RU')}</div></div>
+    <button class="print-btn" onclick="window.print()">🖨 Распечатать / PDF</button>
+  </div>
+  <div class="tree-img"><img src="${imgData}"/></div>
+  </body></html>`);
+  win.document.close();
+}
+
+// ─────────────────────────────────────────
+//  PNG EXPORT
+// ─────────────────────────────────────────
+function exportPNG(){
+  const margin=50,sc=2;
+  const all=Object.entries(S.pos).filter(([id])=>S.persons[id]);if(!all.length)return;
+  const xs=all.map(([,p])=>p.x),ys=all.map(([,p])=>p.y);
+  const mnX=Math.min(...xs)-margin,mnY=Math.min(...ys)-margin;
+  const W=Math.max(...xs)+CW+margin-mnX,H=Math.max(...ys)+CH+margin-mnY;
+  const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;
+  const ctx=cv.getContext('2d');ctx.scale(sc,sc);ctx.translate(-mnX,-mnY);
+  ctx.fillStyle='#06091a';ctx.fillRect(mnX,mnY,W,H);
+  const{spL,chL}=getLines();
+  spL.forEach(({a,b})=>{const pa=S.pos[a],pb=S.pos[b];if(!pa||!pb)return;ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(255,255,255,0.16)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pa.x+CW/2,pa.y+CH/2);ctx.lineTo(pb.x+CW/2,pb.y+CH/2);ctx.stroke();ctx.restore();});
+  chL.forEach(({child,parents})=>{const cp=S.pos[child];if(!cp)return;let sx,sy;if(parents.length===1){const pp=S.pos[parents[0]];if(!pp)return;sx=pp.x+CW/2;sy=pp.y+CH;}else{const p1=S.pos[parents[0]],p2=S.pos[parents[1]];if(!p1||!p2)return;sx=(p1.x+p2.x)/2+CW/2;sy=Math.max(p1.y,p2.y)+CH/2;}const ex=cp.x+CW/2,ey=cp.y,my=(sy+ey)/2;ctx.strokeStyle='rgba(255,255,255,0.22)';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(sx,sy);ctx.bezierCurveTo(sx,my,ex,my,ex,ey);ctx.stroke();});
+  Object.values(S.persons).forEach(p=>{const pp=S.pos[p.id];if(!pp)return;
+    ctx.fillStyle='rgba(15,21,52,0.9)';ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.setLineDash([]);
+    const r=10,x=pp.x,y=pp.y,w=CW,h=CH;
+    ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.fill();ctx.stroke();
+    const[c1,c2]=gc(p.gender);const g=ctx.createLinearGradient(pp.x+10,pp.y+10,pp.x+38,pp.y+38);g.addColorStop(0,c1);g.addColorStop(1,c2);
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(pp.x+23,pp.y+30,14,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText((p.name||'?')[0],pp.x+23,pp.y+34);ctx.textAlign='left';
+    ctx.fillStyle='#dde2f0';ctx.font='bold 10px sans-serif';ctx.fillText((p.name||'').slice(0,17),pp.x+42,pp.y+23);
+    ctx.fillStyle='#8892b0';ctx.font='9px sans-serif';ctx.fillText((p.surname||'').slice(0,17),pp.x+42,pp.y+34);
+    const age=calcAge(p.birthDate,p.death);
+    const d=[p.birthDate?'р.'+p.birthDate:'',age!=null?ageLabel(age):''].filter(Boolean).join(' · ');
+    ctx.fillStyle='#3d4a70';ctx.font='8.5px sans-serif';if(d)ctx.fillText(d.slice(0,26),pp.x+10,pp.y+58);
+    const loc=[p.city,p.country].filter(Boolean).join(', ');if(loc)ctx.fillText(loc.slice(0,24),pp.x+10,pp.y+70);
+  });
+  cv.toBlob(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='family-tree.png';a.click();URL.revokeObjectURL(url);},'image/png');
+}
+
+// ─────────────────────────────────────────
+//  START
+// ─────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
